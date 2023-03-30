@@ -1,0 +1,3230 @@
+;/////////////////////////////////////////////////////////////////////////////////
+;// Code Generator: BoostC Compiler - http://www.sourceboost.com
+;// Version       : 8.01
+;// License Type  : Pro License
+;// Limitations   : PIC12,PIC16 max code size:Unlimited, max RAM banks:Unlimited
+;/////////////////////////////////////////////////////////////////////////////////
+
+#ifndef _TDA7317EQ_H_
+#define _TDA7317EQ_H_
+
+#include <system.h>
+#include <stdio.h>
+
+// define SSD1306 address
+#define ssd1306_addr    0x78
+
+// define TDA7317 address
+#define	tda7317_addr1	0x84 // Base address
+#define	tda7317_addr2	0x86 // Base address
+
+// Pins
+#define LED (portc.2)
+
+// Tasks
+#define	TASKS_LIMIT			8
+#define TASK_ENCODER_SELECT     1
+#define TASK_ENCODER_ADJUST     2
+#define TASK_TIMER1             3
+
+// Global variables
+char cTask = 0;
+065B  0020  	MOVLB 0x00
+065C  01BE  	CLRF gbl_cTask
+
+char iBands[] = {0,0,0,0,0,0,0,0,0,0};
+065D  01B0  	CLRF gbl_iBands
+065E  01B1  	CLRF gbl_iBands+D'1'
+065F  01B2  	CLRF gbl_iBands+D'2'
+0660  01B3  	CLRF gbl_iBands+D'3'
+0661  01B4  	CLRF gbl_iBands+D'4'
+0662  01B5  	CLRF gbl_iBands+D'5'
+0663  01B6  	CLRF gbl_iBands+D'6'
+0664  01B7  	CLRF gbl_iBands+D'7'
+0665  01B8  	CLRF gbl_iBands+D'8'
+0666  01B9  	CLRF gbl_iBands+D'9'
+
+char iActiveBand = 0; // 0 for volume, 1 to 10 for eq bands
+0667  01BF  	CLRF gbl_iActiveBand
+
+char iVolume = 47; // 0 for max, 47 for min -17.625dB
+0668  302F  	MOVLW 0x2F
+0669  00C0  	MOVWF gbl_iVolume
+
+char iTimer1Count = 0;
+066A  01C1  	CLRF gbl_iTimer1Count
+
+
+// valid movements for rencPrevNextCode = 1,2,4,7,8,11,13,14
+rom char *rencTable[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
+066B  3000  	MOVLW 0x00
+066C  00A0  	MOVWF gbl_rencTable
+
+static unsigned char rencPrevNextCode[] = {0, 0};
+066D  01BA  	CLRF gbl_12_rencPrevNextCode
+066E  01BB  	CLRF gbl_12_rencPrevNextCode+D'1'
+
+static unsigned char rencStore[] = {0, 0};
+066F  01BC  	CLRF gbl_12_rencStore
+0670  01BD  	CLRF gbl_12_rencStore+D'1'
+
+
+
+// Display for numbers, from 0 to 9 and very limited symbols/letters
+// ROM array declared in program memory, not RAM
+// 0 to 9*5 = numbers, 10*5 = decimal, 11*5 = minus, 12*5 = plus, 13*5 = d, 14*5 = B
+rom char *dispChar = {
+0671  3001  	MOVLW 0x01
+0672  00C2  	MOVWF gbl_dispChar
+
+    0x3E, 0x51, 0x49, 0x45, 0x3E,
+    0x00, 0x42, 0x7F, 0x40, 0x00,
+    0x72, 0x49, 0x49, 0x49, 0x46,
+    0x21, 0x41, 0x49, 0x4D, 0x33,
+    0x18, 0x14, 0x12, 0x7F, 0x10,
+    0x27, 0x45, 0x45, 0x45, 0x39,
+    0x3C, 0x4A, 0x49, 0x49, 0x31,
+    0x41, 0x21, 0x11, 0x09, 0x07,
+    0x36, 0x49, 0x49, 0x49, 0x36,
+    0x46, 0x49, 0x49, 0x29, 0x1E,
+    0x00, 0x00, 0x60, 0x60, 0x00,
+    0x00, 0x08, 0x08, 0x08, 0x00,
+    0x08, 0x08, 0x3E, 0x08, 0x08,
+    0x38, 0x44, 0x44, 0x28, 0x7F,
+    0x7F, 0x49, 0x49, 0x49, 0x36
+};
+
+// Display for the first page of the SSD1306
+// ROM array declared in program memory, not RAM
+rom char *dispHeader = {
+0673  3002  	MOVLW 0x02
+0674  00C3  	MOVWF gbl_dispHeader
+
+    0x0F,
+    0x10,
+    0x0F,
+    0x00,
+    0x1F,
+    0x10,
+    0x10,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x11,
+    0x15,
+    0x1F,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x15,
+    0x1D,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x00,
+    0x1D,
+    0x15,
+    0x17,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x00,
+    0x1D,
+    0x15,
+    0x17,
+    0x00,
+    0x17,
+    0x15,
+    0x1D,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x00,
+    0x17,
+    0x15,
+    0x1D,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x1F,
+    0x11,
+    0x1F,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x00,
+    0x1F,
+    0x08,
+    0x14,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x1D,
+    0x15,
+    0x17,
+    0x00,
+    0x1F,
+    0x08,
+    0x14,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x0F,
+    0x08,
+    0x1C,
+    0x00,
+    0x1F,
+    0x08,
+    0x14,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x15,
+    0x1F,
+    0x00,
+    0x1F,
+    0x08,
+    0x14,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x00,
+    0x1F,
+    0x15,
+    0x1D,
+    0x00,
+    0x1F,
+    0x08,
+    0x14
+};
+
+// Methods
+void saveData();
+char eepromWrite(char address, char data);
+void readData();
+char eepromRead(char address);
+
+void ssd1306StartCommand();
+void ssd1306Init();
+void ssd1306WriteAll();
+
+void tda7317Write();
+
+void encoderInit();
+void encoderPoll();
+
+#endif //_TDA7317EQ_H_
+
+/*****************************************************************************************************************
+ Copyright Daniel Clarke https://electro-dan.co.uk, 30th October 2022
+ Free to use and adapt but NO guarantees or support
+ For PIC16F1824
+ 
+*****************************************************************************************************************/
+
+#include "TDA7317EQ.h"
+
+// Configuration registers - PIC16F1824
+// CLKOUT function off, Brown out reset off, Data code/code protection off, MCLRE is digital in, Power-up Timer on, Watchdog timer off, Internal Osciallator active
+#pragma DATA _CONFIG1, _CLKOUTEN_OFF & _BOREN_OFF & _CPD_OFF & _CP_OFF & _MCLRE_OFF & _PWRTE_ON & _WDTE_OFF & _FOSC_INTOSC 
+// Low voltage programming off, Brown-out Reset Voltage (VBOR) set to 2.5 V, 4xPLL disabled, Flash write protect off
+#pragma DATA _CONFIG2, _LVP_OFF & _BORV_25 & _PLLEN_OFF & _WRT_OFF
+
+// Set clock frequency - 16MHz Internal Oscillator
+#pragma CLOCK_FREQ  16000000
+
+/***********************************************************************************
+  Function called once only to initialise variables and setup the PIC registers
+************************************************************************************/
+void initialise() {
+
+    // osc speed 16MHz
+    osccon = 0x7A; // 4xPLL off, 16Mhz HF, Internal oscillator block
+053A  307A  	MOVLW 0x7A
+053B  0021  	MOVLB 0x01
+053C  0099  	MOVWF gbl_osccon
+
+    // IO ports setup
+    trisa = 0x3C; // RA2, RA3, RA4, RA5 are inputs
+053D  303C  	MOVLW 0x3C
+053E  008C  	MOVWF gbl_trisa
+
+    porta = 0x00; // set to off
+053F  0020  	MOVLB 0x00
+0540  018C  	CLRF gbl_porta
+
+    trisc = 0x03; // RC1[SDA] and RC0[SCL] are inputs
+0541  3003  	MOVLW 0x03
+0542  0021  	MOVLB 0x01
+0543  008E  	MOVWF gbl_trisc
+
+    portc = 0x03; // set to off, except RC0, RC1 for I2C
+0544  0020  	MOVLB 0x00
+0545  008E  	MOVWF gbl_portc
+
+    ansela = 0;
+0546  0023  	MOVLB 0x03
+0547  018C  	CLRF gbl_ansela
+
+    wpua = 0;
+0548  0024  	MOVLB 0x04
+0549  018C  	CLRF gbl_wpua
+
+    anselc = 0;
+054A  0023  	MOVLB 0x03
+054B  018E  	CLRF gbl_anselc
+
+    wpuc = 0;
+054C  0024  	MOVLB 0x04
+054D  018E  	CLRF gbl_wpuc
+
+
+    option_reg.NOT_WPUEN = 1; // Port A pull-ups disabled
+054E  0021  	MOVLB 0x01
+054F  1795  	BSF gbl_option_reg,7
+
+    
+    // Initialise I2C MSSP
+    // Master 100KHz
+    // TRISC set SCL and SDA pins as inputs above
+    // sspcon same as ssp1con1
+    // SSPEN (I2C), CKP (clock polarity), SSPM3:SSPM0 -> 1000 = I2C Master mode, 
+    sspcon = 0x28; // I2C enabled (SSPEN), I2C Master mode clock = FOSC/(4 * (SSP1ADD+1))
+0550  3028  	MOVLW 0x28
+0551  0024  	MOVLB 0x04
+0552  0095  	MOVWF gbl_sspcon
+
+    sspcon2 = 0x00;
+0553  0196  	CLRF gbl_sspcon2
+
+    sspadd = 39; // Clock 100Khz @ 16Mhz Fosc - 16000000 / (4 * (39 + 1))
+0554  3027  	MOVLW 0x27
+0555  0092  	MOVWF gbl_sspadd
+
+    sspstat.SMP = 1; // Slew rate disabled
+0556  1794  	BSF gbl_sspstat,7
+
+    sspstat.CKE = 0;
+0557  1314  	BCF gbl_sspstat,6
+
+    pir2.BCL1IF = 0;
+0558  0020  	MOVLB 0x00
+0559  1192  	BCF gbl_pir2,3
+
+    
+    delay_s(1);
+055A  3001  	MOVLW 0x01
+055B  00C4  	MOVWF delay_s_00000_arg_del
+055C  2139  	CALL delay_s_00000
+
+
+    // Read in variables from EEPROM
+    readData();
+055D  24CD  	CALL readData_00000
+
+
+    // Interrupt setup
+    //intcon.IOCIE = 0; // Interrupt on-change
+    
+    // Setup timer 1, used to periodically save data
+    // Timer calculator: http://eng-serve.com/pic/pic_timer.html
+    // Timer 1 setup - interrupt every 131ms seconds 16MHz
+    t1con = 0;
+055E  0198  	CLRF gbl_t1con
+
+    t1con.T1CKPS1 = 1;   // bits 5-4  Prescaler Rate Select bits
+055F  1698  	BSF gbl_t1con,5
+
+    t1con.T1CKPS0 = 1;   // bit 4
+0560  1618  	BSF gbl_t1con,4
+
+    //t1con.T1OSCEN = 0;   // bit 3 Timer1 Oscillator Enable Control bit 1 = off - this should be cleared so we can use RA4 and RA5 as outputs
+    t1con.NOT_T1SYNC = 1;    // bit 2 Timer1 External Clock Input Synchronization Control bit...1 = Do not synchronize external clock input
+0561  1518  	BSF gbl_t1con,2
+
+    //t1con.TMR1CS = 0;    // bit 1 Timer1 Clock Source Select bit...0 = Internal clock (FOSC/4)
+    t1con.TMR1ON = 1;    // bit 0 enables timer
+0562  1418  	BSF gbl_t1con,0
+
+    pie1.TMR1IE = 1; // Timer 1 interrupt enable
+0563  0021  	MOVLB 0x01
+0564  1411  	BSF gbl_pie1,0
+
+    pir1.TMR1IF = 0; // Clear timer 1 interrupt flag bit
+0565  0020  	MOVLB 0x00
+0566  1011  	BCF gbl_pir1,0
+
+
+    intcon.PEIE = 1; // Enables all unmasked peripheral interrupts (required for timer1 and I2C)
+0567  170B  	BSF gbl_intcon,6
+
+    intcon.GIE = 1; // Enable global interrupts
+0568  178B  	BSF gbl_intcon,7
+
+
+    tda7317Write();
+0569  2198  	CALL tda7317Wri_0001C
+
+
+    ssd1306Init();
+056A  2468  	CALL ssd1306Ini_00017
+
+    ssd1306WriteAll();
+056B  21DF  	CALL ssd1306Wri_00018
+
+
+    LED = 1; // Standby LED
+056C  0020  	MOVLB 0x00
+056D  150E  	BSF gbl_portc,2
+
+}
+056E  0008  	RETURN
+
+
+/***********************************************************************************
+  Interrupt handler
+************************************************************************************/
+void interrupt(void) {
+
+    // Handle timer1 interrupt
+    if (pir1.TMR1IF && pie1.TMR1IE) {
+0677  0020  	MOVLB 0x00
+0678  1C11  	BTFSS gbl_pir1,0
+067A  0021  	MOVLB 0x01
+067B  1C11  	BTFSS gbl_pie1,0
+
+        if (iTimer1Count >= 231) {
+067D  30E7  	MOVLW 0xE7
+067E  0020  	MOVLB 0x00
+067F  0241  	SUBWF gbl_iTimer1Count, W
+0680  1C03  	BTFSS STATUS,C
+0681  2E84  	GOTO	label104
+0684        label104
+
+            iTimer1Count = 0;
+0682  01C1  	CLRF gbl_iTimer1Count
+
+            // If the number of tasks to perform is less than the limit,
+            // then add this task to the task array
+            cTask.TASK_TIMER1 = 1;
+0683  15BE  	BSF gbl_cTask,3
+
+        }
+        // Count the number of times this timer overflowed
+        iTimer1Count++;
+0684  0AC1  	INCF gbl_iTimer1Count, F
+
+        // Clear interrupt flag
+        pir1.TMR1IF = 0; 
+0685  1011  	BCF gbl_pir1,0
+
+    }
+}
+0679  0009  	RETFIE
+067C  0009  	RETFIE
+0686  0009  	RETFIE
+
+
+/***********************************************************************************
+  EEPROM read and write methods
+************************************************************************************/
+void saveData() {
+
+    char didWrite = 0;
+0514  0020  	MOVLB 0x00
+0515  01C4  	CLRF saveData_00000_1_didWrite
+
+    // only write value if it is different
+    for (char i = 0; i < 10; i++)
+0516  01C5  	CLRF saveData_00000_2_i
+0517        label79
+0517  300A  	MOVLW 0x0A
+0518  0245  	SUBWF saveData_00000_2_i, W
+0519  1803  	BTFSC STATUS,C
+051A  2D2A  	GOTO	label80
+0528  0AC5  	INCF saveData_00000_2_i, F
+0529  2D17  	GOTO	label79
+052A        label80
+
+        didWrite += eepromWrite(i, iBands[i]);
+051B  0845  	MOVF saveData_00000_2_i, W
+051C  00C6  	MOVWF eepromWrit_00015_arg_address
+051D  3000  	MOVLW	HIGH(gbl_iBands)
+
+051E  0085  	MOVWF FSR0H
+051F  3030  	MOVLW LOW(gbl_iBands+D'0')
+0520  0084  	MOVWF FSR0L
+0521  0845  	MOVF saveData_00000_2_i, W
+0522  0784  	ADDWF FSR0L, F
+0523  0800  	MOVF INDF0, W
+0524  00C7  	MOVWF eepromWrit_00015_arg_data
+0525  24ED  	CALL eepromWrit_00015
+0526  0849  	MOVF CompTempVarRet573, W
+0527  07C4  	ADDWF saveData_00000_1_didWrite, F
+
+    
+    didWrite += eepromWrite(10, iVolume);
+052A  300A  	MOVLW 0x0A
+052B  00C6  	MOVWF eepromWrit_00015_arg_address
+052C  0840  	MOVF gbl_iVolume, W
+052D  00C7  	MOVWF eepromWrit_00015_arg_data
+052E  24ED  	CALL eepromWrit_00015
+052F  0849  	MOVF CompTempVarRet573, W
+0530  07C4  	ADDWF saveData_00000_1_didWrite, F
+
+    
+    if (didWrite)
+0531  08C4  	MOVF saveData_00000_1_didWrite, F
+0532  1903  	BTFSC STATUS,Z
+
+        eepromWrite(11, 10); // To indicate EEPROM has been saved
+0534  300B  	MOVLW 0x0B
+0535  00C6  	MOVWF eepromWrit_00015_arg_address
+0536  300A  	MOVLW 0x0A
+0537  00C7  	MOVWF eepromWrit_00015_arg_data
+0538  24ED  	CALL eepromWrit_00015
+
+}
+0533  0008  	RETURN
+0539  0008  	RETURN
+
+
+char eepromWrite(char address, char data) {
+
+    char didWrite = 0;
+04ED  01C8  	CLRF eepromWrit_00015_1_didWrite
+
+    if (eepromRead(address) != data) {
+04EE  0846  	MOVF eepromWrit_00015_arg_address, W
+04EF  00C9  	MOVWF eepromRead_00000_arg_address
+04F0  2160  	CALL eepromRead_00000
+04F1  0847  	MOVF eepromWrit_00015_arg_data, W
+04F2  064A  	XORWF CompTempVarRet574, W
+04F3  1903  	BTFSC STATUS,Z
+04F4  2D11  	GOTO	label78
+0511        label78
+
+        char intconsave = intcon;
+04F5  080B  	MOVF gbl_intcon, W
+04F6  00C9  	MOVWF eepromWrit_00015_4_intconsave
+
+        
+        // Load address and data
+        eeadr = address;
+04F7  0846  	MOVF eepromWrit_00015_arg_address, W
+04F8  0023  	MOVLB 0x03
+04F9  0091  	MOVWF gbl_eeadr
+
+        eedata = data;
+04FA  0020  	MOVLB 0x00
+04FB  0847  	MOVF eepromWrit_00015_arg_data, W
+04FC  0023  	MOVLB 0x03
+04FD  0093  	MOVWF gbl_eedata
+
+    
+        eecon1.EEPGD = 0; // Point to DATA memory
+04FE  1395  	BCF gbl_eecon1,7
+
+        //eecon1.CFGS = 0; // Access EEPROM
+        eecon1.WREN = 1; // Enable writes
+04FF  1515  	BSF gbl_eecon1,2
+
+        
+        // Required write sequence
+        intcon = 0;
+0500  018B  	CLRF gbl_intcon
+
+        eecon2 = 0x55; // Write 55h
+0501  3055  	MOVLW 0x55
+0502  0096  	MOVWF gbl_eecon2
+
+        eecon2 = 0xAA; // Write 0AAh
+0503  30AA  	MOVLW 0xAA
+0504  0096  	MOVWF gbl_eecon2
+
+        eecon1.WR = 1; // Set WR bit to begin write
+0505  1495  	BSF gbl_eecon1,1
+
+        intcon = intconsave;
+0506  0020  	MOVLB 0x00
+0507  0849  	MOVF eepromWrit_00015_4_intconsave, W
+0508  008B  	MOVWF gbl_intcon
+
+        eecon1.WREN = 0; // Disable writes on write complete (EEIF set)
+0509  0023  	MOVLB 0x03
+050A  1115  	BCF gbl_eecon1,2
+
+        while(!pir2.EEIF); // Wait for the interrupt bit EEIF to be set
+050B        label77
+050B  0020  	MOVLB 0x00
+050C  1E12  	BTFSS gbl_pir2,4
+050D  2D0B  	GOTO	label77
+
+        pir2.EEIF = 0; // Clear EEIF
+050E  1212  	BCF gbl_pir2,4
+
+        didWrite = 1;
+050F  3001  	MOVLW 0x01
+0510  00C8  	MOVWF eepromWrit_00015_1_didWrite
+
+    }
+    return didWrite;
+0511  0848  	MOVF eepromWrit_00015_1_didWrite, W
+0512  00C9  	MOVWF CompTempVarRet573
+
+}
+0513  0008  	RETURN
+
+
+/******************************************************
+  Function to read the current variables from ROM
+*******************************************************/
+void readData() {
+
+    // Read initial values from EEPROM
+    // Do not read other variables if the EEPROM has not been saved before
+    // as all default will be 0xFF
+    if (eepromRead(11) == 10) {
+04CD  300B  	MOVLW 0x0B
+04CE  0020  	MOVLB 0x00
+04CF  00C9  	MOVWF eepromRead_00000_arg_address
+04D0  2160  	CALL eepromRead_00000
+04D1  084A  	MOVF CompTempVarRet574, W
+04D2  3A0A  	XORLW 0x0A
+04D3  1D03  	BTFSS STATUS,Z
+
+        for (char i = 0; i < 10; i++)
+04D5  01C4  	CLRF readData_00000_5_i
+04D6        label75
+04D6  300A  	MOVLW 0x0A
+04D7  0244  	SUBWF readData_00000_5_i, W
+04D8  1803  	BTFSC STATUS,C
+04D9  2CE7  	GOTO	label76
+04E5  0AC4  	INCF readData_00000_5_i, F
+04E6  2CD6  	GOTO	label75
+04E7        label76
+
+            iBands[i] = eepromRead(i);
+04DA  0844  	MOVF readData_00000_5_i, W
+04DB  00C9  	MOVWF eepromRead_00000_arg_address
+04DC  2160  	CALL eepromRead_00000
+04DD  3000  	MOVLW	HIGH(gbl_iBands)
+
+04DE  0085  	MOVWF FSR0H
+04DF  3030  	MOVLW LOW(gbl_iBands+D'0')
+04E0  0084  	MOVWF FSR0L
+04E1  0844  	MOVF readData_00000_5_i, W
+04E2  0784  	ADDWF FSR0L, F
+04E3  084A  	MOVF CompTempVarRet574, W
+04E4  0080  	MOVWF INDF0
+
+        iVolume = eepromRead(10);
+04E7  300A  	MOVLW 0x0A
+04E8  00C9  	MOVWF eepromRead_00000_arg_address
+04E9  2160  	CALL eepromRead_00000
+04EA  084A  	MOVF CompTempVarRet574, W
+04EB  00C0  	MOVWF gbl_iVolume
+
+    }
+}
+04D4  0008  	RETURN
+04EC  0008  	RETURN
+
+
+char eepromRead(char address) {
+
+    // Load address
+    eeadr = address;
+0160  0849  	MOVF eepromRead_00000_arg_address, W
+0161  0023  	MOVLB 0x03
+0162  0091  	MOVWF gbl_eeadr
+
+    eecon1.EEPGD = 0; // Point to DATA memory
+0163  1395  	BCF gbl_eecon1,7
+
+    //eecon1.CFGS = 0; // Access EEPROM
+    
+    // Read, data is available in eedata the next cycle.
+    eecon1.RD = 1;
+0164  1415  	BSF gbl_eecon1,0
+
+    
+    // Return value
+    return eedata;
+0165  0813  	MOVF gbl_eedata, W
+0166  0020  	MOVLB 0x00
+0167  00CA  	MOVWF CompTempVarRet574
+
+}
+0168  0008  	RETURN
+
+
+/***********************************************************************************
+  I2C methods using MSSP
+  https://www.hobbytronics.co.uk/tutorials-code/tutorials-microchip/hi-tech-c-i2c-master
+************************************************************************************/
+// i2c_Wait - wait for I2C transfer to finish
+void i2cWait(void) {
+
+    // sspcon2 bit 4 ACKEN: Initiate Acknowledge sequence on SDA and SCL pins and transmit ACKDT data bit. Automatically cleared by hardware.
+    // sspcon2 bit 3 RCEN: Enables Receive mode for I2C
+    // sspcon2 bit 2 PEN: Initiate STOP condition on SDA and SCL pins. Automatically cleared by hardware
+    // sspcon2 bit 1 RSEN: Initiate Repeated START condition on SDA and SCL pins. Automatically cleared by hardware.
+    // sspcon2 bit 0 SEN: Initiate START condition on SDA and SCL pins. Automatically cleared by hardware.
+    // sspstat bit 3: Indicates that a START bit has been detected last
+    while ((sspcon2 & 0x1F) || (sspstat & 0x04));
+0148        label10
+0148  301F  	MOVLW 0x1F
+0149  0024  	MOVLB 0x04
+014A  0516  	ANDWF gbl_sspcon2, W
+014B  1903  	BTFSC STATUS,Z
+014C  1914  	BTFSC gbl_sspstat,2
+014D  2948  	GOTO	label10
+
+}
+014E  0008  	RETURN
+
+
+// i2c_Start - Start I2C communication
+void i2cStart(void) {
+
+    i2cWait();
+0153  2148  	CALL i2cWait_00000
+
+    sspcon2.SEN = 1;
+0154  1416  	BSF gbl_sspcon2,0
+
+}
+0155  0008  	RETURN
+
+
+// i2c_Stop - Stop I2C communication
+void i2cStop(void) {
+
+    i2cWait();
+015D  2148  	CALL i2cWait_00000
+
+    sspcon2.PEN = 1;
+015E  1516  	BSF gbl_sspcon2,2
+
+}
+015F  0008  	RETURN
+
+
+// i2cWrite - Sends one byte of data
+void i2cWrite(char data) {
+
+    i2cWait();
+014F  2148  	CALL i2cWait_00000
+
+    sspbuf = data;
+0150  0873  	MOVF i2cWrite_00000_arg_data, W
+0151  0091  	MOVWF gbl_sspbuf
+
+}
+0152  0008  	RETURN
+
+
+/***********************************************************************************
+  SSD1306 methods
+************************************************************************************/
+void ssd1306StartCommand() {
+
+    i2cStart();
+0156  2153  	CALL i2cStart_00000
+
+    i2cWrite(ssd1306_addr);
+0157  3078  	MOVLW 0x78
+0158  00F3  	MOVWF i2cWrite_00000_arg_data
+0159  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x00); // Co = 0, D/C = 0
+015A  01F3  	CLRF i2cWrite_00000_arg_data
+015B  214F  	CALL i2cWrite_00000
+
+}
+015C  0008  	RETURN
+
+
+void ssd1306Init() {
+
+    
+    ssd1306StartCommand();
+0468  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xAE); // Set Display Off
+0469  30AE  	MOVLW 0xAE
+046A  00F3  	MOVWF i2cWrite_00000_arg_data
+046B  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xD5); // Set Display Clock Divide Ratio/ Oscillator Frequency
+046C  30D5  	MOVLW 0xD5
+046D  00F3  	MOVWF i2cWrite_00000_arg_data
+046E  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x80); // ratio 0x80 - this is default
+046F  3080  	MOVLW 0x80
+0470  00F3  	MOVWF i2cWrite_00000_arg_data
+0471  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA8); // Set Multiplex Ratio
+0472  30A8  	MOVLW 0xA8
+0473  00F3  	MOVWF i2cWrite_00000_arg_data
+0474  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+0475  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+0476  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x1F); // 1F = 31 = 32 lines height
+0477  301F  	MOVLW 0x1F
+0478  00F3  	MOVWF i2cWrite_00000_arg_data
+0479  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+047A  215D  	CALL i2cStop_00000
+
+
+    ssd1306StartCommand();
+047B  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xD3); // Set Display Offset
+047C  30D3  	MOVLW 0xD3
+047D  00F3  	MOVWF i2cWrite_00000_arg_data
+047E  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x00); // no offset
+047F  01F3  	CLRF i2cWrite_00000_arg_data
+0480  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x40); // Set Display Start Line - Line 0
+0481  3040  	MOVLW 0x40
+0482  00F3  	MOVWF i2cWrite_00000_arg_data
+0483  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x8D); // Charge Pump Setting
+0484  308D  	MOVLW 0x8D
+0485  00F3  	MOVWF i2cWrite_00000_arg_data
+0486  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+0487  215D  	CALL i2cStop_00000
+
+    
+    // 14 -  Enable Charge Pump
+    ssd1306StartCommand();
+0488  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x14);
+0489  3014  	MOVLW 0x14
+048A  00F3  	MOVWF i2cWrite_00000_arg_data
+048B  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+048C  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+048D  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x20); // memory mode
+048E  3020  	MOVLW 0x20
+048F  00F3  	MOVWF i2cWrite_00000_arg_data
+0490  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x00); // 0x0 act like ks0108 - horizontal addressing mode
+0491  01F3  	CLRF i2cWrite_00000_arg_data
+0492  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA1); // Set Segment Re-map - A0 = Column address 0 is mapped to SEG0, A1 = Column address 127 is mapped to SEG0
+0493  30A1  	MOVLW 0xA1
+0494  00F3  	MOVWF i2cWrite_00000_arg_data
+0495  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xC8); // Set COM Output Scan Direction - C0 = normal mode (RESET) Scan from COM0 to COM[N –1], C8 = Remapped mode. Scan from COM[N-1] to COM0
+0496  30C8  	MOVLW 0xC8
+0497  00F3  	MOVWF i2cWrite_00000_arg_data
+0498  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+0499  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+049A  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xDA); // Set COM Pins Hardware Configuration
+049B  30DA  	MOVLW 0xDA
+049C  00F3  	MOVWF i2cWrite_00000_arg_data
+049D  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+049E  215D  	CALL i2cStop_00000
+
+
+    ssd1306StartCommand();
+049F  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x02); // 02 = Sequential COM pin configuration, Disable COM Left/Right remap
+04A0  3002  	MOVLW 0x02
+04A1  00F3  	MOVWF i2cWrite_00000_arg_data
+04A2  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04A3  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+04A4  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x81); // Set Contrast Control
+04A5  3081  	MOVLW 0x81
+04A6  00F3  	MOVWF i2cWrite_00000_arg_data
+04A7  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04A8  215D  	CALL i2cStop_00000
+
+    ssd1306StartCommand();
+04A9  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x8F); // constrast 0 to FF
+04AA  308F  	MOVLW 0x8F
+04AB  00F3  	MOVWF i2cWrite_00000_arg_data
+04AC  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04AD  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+04AE  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xD9); // Set Pre-charge Period duration
+04AF  30D9  	MOVLW 0xD9
+04B0  00F3  	MOVWF i2cWrite_00000_arg_data
+04B1  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04B2  215D  	CALL i2cStop_00000
+
+    ssd1306StartCommand();
+04B3  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xF1); // phase 2 = 15 DCLK, phase 1 = 1 DCLK
+04B4  30F1  	MOVLW 0xF1
+04B5  00F3  	MOVWF i2cWrite_00000_arg_data
+04B6  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04B7  215D  	CALL i2cStop_00000
+
+    
+    ssd1306StartCommand();
+04B8  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0xDB); // Set VCOMH Deselect Level (adjusts VCOMH regulator output)
+04B9  30DB  	MOVLW 0xDB
+04BA  00F3  	MOVWF i2cWrite_00000_arg_data
+04BB  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x40); // ~ 0.77 x VCC
+04BC  3040  	MOVLW 0x40
+04BD  00F3  	MOVWF i2cWrite_00000_arg_data
+04BE  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA4); // Disable Entire Display On
+04BF  30A4  	MOVLW 0xA4
+04C0  00F3  	MOVWF i2cWrite_00000_arg_data
+04C1  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA6); // Set Normal Display
+04C2  30A6  	MOVLW 0xA6
+04C3  00F3  	MOVWF i2cWrite_00000_arg_data
+04C4  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x2E); // Deactivate Scroll
+04C5  302E  	MOVLW 0x2E
+04C6  00F3  	MOVWF i2cWrite_00000_arg_data
+04C7  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xAF); // Set Display On
+04C8  30AF  	MOVLW 0xAF
+04C9  00F3  	MOVWF i2cWrite_00000_arg_data
+04CA  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+04CB  215D  	CALL i2cStop_00000
+
+}
+04CC  0008  	RETURN
+
+
+void ssd1306WriteAll() {
+
+    char x;
+    char i;
+    // Work out volume byte for bar
+    char iVolumeAlt = 47 - iVolume;
+01DF  0020  	MOVLB 0x00
+01E0  0840  	MOVF gbl_iVolume, W
+01E1  3C2F  	SUBLW 0x2F
+01E2  00C6  	MOVWF ssd1306Wri_00018_1_iVolumeAlt
+
+    char bVolByte[] = {0xFF, 0xFF, 0xFF}; // start with all blocks filled
+01E3  30FF  	MOVLW 0xFF
+01E4  00C7  	MOVWF ssd1306Wri_00018_1_bVolByte
+01E5  00C8  	MOVWF ssd1306Wri_00018_1_bVolByte+D'1'
+01E6  00C9  	MOVWF ssd1306Wri_00018_1_bVolByte+D'2'
+
+    // Range for the second page is 32 to 47 (max covers 46 and 47)
+    if (iVolumeAlt < 46) {
+01E7  302E  	MOVLW 0x2E
+01E8  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+01E9  1803  	BTFSC STATUS,C
+01EA  29F9  	GOTO	label16
+
+        i = 46; // 32+14
+01EB  302E  	MOVLW 0x2E
+01EC  00C5  	MOVWF ssd1306Wri_00018_1_i
+
+        while ((iVolumeAlt < i) && bVolByte[0]) {
+01ED        label15
+01ED  0845  	MOVF ssd1306Wri_00018_1_i, W
+01EE  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+01EF  1803  	BTFSC STATUS,C
+01F0  29F9  	GOTO	label16
+01F1  08C7  	MOVF ssd1306Wri_00018_1_bVolByte, F
+01F2  1903  	BTFSC STATUS,Z
+01F3  29F9  	GOTO	label16
+01F8  29ED  	GOTO	label15
+01F9        label16
+02B5  2AA6  	GOTO	label33
+
+            bVolByte[0] = bVolByte[0] << 1; // shift left
+01F4  08C7  	MOVF ssd1306Wri_00018_1_bVolByte, F
+01F5  35C7  	LSLF ssd1306Wri_00018_1_bVolByte, F
+
+            i -= 2;
+01F6  3002  	MOVLW 0x02
+01F7  02C5  	SUBWF ssd1306Wri_00018_1_i, F
+
+        }
+    }
+    // Next page range for the third page is 16 to 31 (max covers 46 and 47)
+    if (iVolumeAlt < 30) {
+01F9  301E  	MOVLW 0x1E
+01FA  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+01FB  1803  	BTFSC STATUS,C
+01FC  2A0B  	GOTO	label18
+
+        i = 30; // 16+14
+01FD  301E  	MOVLW 0x1E
+01FE  00C5  	MOVWF ssd1306Wri_00018_1_i
+
+        while ((iVolumeAlt < i) && bVolByte[1]) {
+01FF        label17
+01FF  0845  	MOVF ssd1306Wri_00018_1_i, W
+0200  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+0201  1803  	BTFSC STATUS,C
+0202  2A0B  	GOTO	label18
+0203  08C8  	MOVF ssd1306Wri_00018_1_bVolByte+D'1', F
+0204  1903  	BTFSC STATUS,Z
+0205  2A0B  	GOTO	label18
+020A  29FF  	GOTO	label17
+020B        label18
+
+            bVolByte[1] = bVolByte[1] << 1; // shift left
+0206  08C8  	MOVF ssd1306Wri_00018_1_bVolByte+D'1', F
+0207  35C8  	LSLF ssd1306Wri_00018_1_bVolByte+D'1', F
+
+            i -= 2;
+0208  3002  	MOVLW 0x02
+0209  02C5  	SUBWF ssd1306Wri_00018_1_i, F
+
+        }
+    }
+    // Range for the fourth page is 0 to 15
+    if (iVolumeAlt < 14) {
+020B  300E  	MOVLW 0x0E
+020C  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+020D  1803  	BTFSC STATUS,C
+020E  2A1D  	GOTO	label20
+
+        i = 14;
+020F  300E  	MOVLW 0x0E
+0210  00C5  	MOVWF ssd1306Wri_00018_1_i
+
+        while ((iVolumeAlt < i) && bVolByte[2]) {
+0211        label19
+0211  0845  	MOVF ssd1306Wri_00018_1_i, W
+0212  0246  	SUBWF ssd1306Wri_00018_1_iVolumeAlt, W
+0213  1803  	BTFSC STATUS,C
+0214  2A1D  	GOTO	label20
+0215  08C9  	MOVF ssd1306Wri_00018_1_bVolByte+D'2', F
+0216  1903  	BTFSC STATUS,Z
+0217  2A1D  	GOTO	label20
+021C  2A11  	GOTO	label19
+021D        label20
+
+            bVolByte[2] = bVolByte[2] << 1; // shift left
+0218  08C9  	MOVF ssd1306Wri_00018_1_bVolByte+D'2', F
+0219  35C9  	LSLF ssd1306Wri_00018_1_bVolByte+D'2', F
+
+            i -= 2;
+021A  3002  	MOVLW 0x02
+021B  02C5  	SUBWF ssd1306Wri_00018_1_i, F
+
+        }
+    }
+    // Work out band bytes
+    char bBandBytes[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // start with all blocks empty
+021D  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_bBandBytes)
+
+021E  0085  	MOVWF FSR0H
+021F  304A  	MOVLW LOW(ssd1306Wri_00018_1_bBandBytes+D'0')
+0220  0084  	MOVWF FSR0L
+0221  3013  	MOVLW 0x13
+0222  00DD  	MOVWF ssd1306Wri_00018_1_bBandBytes+D'19'
+0223        label21
+0223  0180  	CLRF INDF0
+0224  0A84  	INCF FSR0L, F
+0225  0BDD  	DECFSZ ssd1306Wri_00018_1_bBandBytes+D'19', F
+0226  2A23  	GOTO	label21
+
+    // Dealing with boost here where iBands[x] is 0 to 7
+    // Loop through 10 bands
+    for (x = 0; x < 10; x++) {
+0227  01C4  	CLRF ssd1306Wri_00018_1_x
+0228        label22
+0228  300A  	MOVLW 0x0A
+0229  0244  	SUBWF ssd1306Wri_00018_1_x, W
+022A  1803  	BTFSC STATUS,C
+022B  2A51  	GOTO	label26
+024F  0AC4  	INCF ssd1306Wri_00018_1_x, F
+0250  2A28  	GOTO	label22
+0251        label26
+
+        char iBand = iBands[x];
+022C  3000  	MOVLW	HIGH(gbl_iBands)
+
+022D  0085  	MOVWF FSR0H
+022E  3030  	MOVLW LOW(gbl_iBands+D'0')
+022F  0084  	MOVWF FSR0L
+0230  0844  	MOVF ssd1306Wri_00018_1_x, W
+0231  0784  	ADDWF FSR0L, F
+0232  0800  	MOVF INDF0, W
+0233  00F3  	MOVWF ssd1306Wri_00018_26_iBand
+
+        if (iBand < 8) {
+0234  3008  	MOVLW 0x08
+0235  0273  	SUBWF ssd1306Wri_00018_26_iBand, W
+0236  1803  	BTFSC STATUS,C
+0237  2A4F  	GOTO	label25
+024F        label25
+
+            char bBandByte = 0xFE;
+0238  30FE  	MOVLW 0xFE
+0239  00F4  	MOVWF ssd1306Wri_00018_27_bBandByte
+
+            i = 7;
+023A  3007  	MOVLW 0x07
+023B  00C5  	MOVWF ssd1306Wri_00018_1_i
+
+            while ((iBand < i) && bBandByte) {
+023C        label23
+023C  0845  	MOVF ssd1306Wri_00018_1_i, W
+023D  0273  	SUBWF ssd1306Wri_00018_26_iBand, W
+023E  1803  	BTFSC STATUS,C
+023F  2A47  	GOTO	label24
+0240  08F4  	MOVF ssd1306Wri_00018_27_bBandByte, F
+0241  1903  	BTFSC STATUS,Z
+0242  2A47  	GOTO	label24
+0246  2A3C  	GOTO	label23
+0247        label24
+
+                bBandByte = bBandByte << 1; // shift left
+0243  08F4  	MOVF ssd1306Wri_00018_27_bBandByte, F
+0244  35F4  	LSLF ssd1306Wri_00018_27_bBandByte, F
+
+                i--;
+0245  03C5  	DECF ssd1306Wri_00018_1_i, F
+
+            }
+            bBandBytes[x] = bBandByte;
+0247  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_bBandBytes)
+
+0248  0085  	MOVWF FSR0H
+0249  304A  	MOVLW LOW(ssd1306Wri_00018_1_bBandBytes+D'0')
+024A  0084  	MOVWF FSR0L
+024B  0844  	MOVF ssd1306Wri_00018_1_x, W
+024C  0784  	ADDWF FSR0L, F
+024D  0874  	MOVF ssd1306Wri_00018_27_bBandByte, W
+024E  0080  	MOVWF INDF0
+
+        }
+    }
+    // Third page for -2dB to -14dB (7 steps) - Dealing with cut here where iBands[x] is 9 to 15
+    // Loop through 10 bands
+    for (x = 0; x < 10; x++) {
+0251  01C4  	CLRF ssd1306Wri_00018_1_x
+0252        label27
+0252  300A  	MOVLW 0x0A
+0253  0244  	SUBWF ssd1306Wri_00018_1_x, W
+0254  1803  	BTFSC STATUS,C
+0255  2A7C  	GOTO	label31
+027A  0AC4  	INCF ssd1306Wri_00018_1_x, F
+027B  2A52  	GOTO	label27
+027C        label31
+
+        char iBand = iBands[x];
+0256  3000  	MOVLW	HIGH(gbl_iBands)
+
+0257  0085  	MOVWF FSR0H
+0258  3030  	MOVLW LOW(gbl_iBands+D'0')
+0259  0084  	MOVWF FSR0L
+025A  0844  	MOVF ssd1306Wri_00018_1_x, W
+025B  0784  	ADDWF FSR0L, F
+025C  0800  	MOVF INDF0, W
+025D  00F3  	MOVWF ssd1306Wri_00018_34_iBand
+
+        if (iBand > 8) {
+025E  0873  	MOVF ssd1306Wri_00018_34_iBand, W
+025F  3C08  	SUBLW 0x08
+0260  1803  	BTFSC STATUS,C
+0261  2A7A  	GOTO	label30
+027A        label30
+
+            char bBandByte = 0x7F;
+0262  307F  	MOVLW 0x7F
+0263  00F4  	MOVWF ssd1306Wri_00018_35_bBandByte
+
+            i = 15;
+0264  300F  	MOVLW 0x0F
+0265  00C5  	MOVWF ssd1306Wri_00018_1_i
+
+            while ((iBand < i) && bBandByte) {
+0266        label28
+0266  0845  	MOVF ssd1306Wri_00018_1_i, W
+0267  0273  	SUBWF ssd1306Wri_00018_34_iBand, W
+0268  1803  	BTFSC STATUS,C
+0269  2A71  	GOTO	label29
+026A  08F4  	MOVF ssd1306Wri_00018_35_bBandByte, F
+026B  1903  	BTFSC STATUS,Z
+026C  2A71  	GOTO	label29
+0270  2A66  	GOTO	label28
+0271        label29
+
+                bBandByte = bBandByte >> 1; // shift right
+026D  08F4  	MOVF ssd1306Wri_00018_35_bBandByte, F
+026E  36F4  	LSRF ssd1306Wri_00018_35_bBandByte, F
+
+                i--;
+026F  03C5  	DECF ssd1306Wri_00018_1_i, F
+
+            }
+            bBandBytes[x + 10] = bBandByte;
+0271  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_bBandBytes)
+
+0272  0085  	MOVWF FSR0H
+0273  304A  	MOVLW LOW(ssd1306Wri_00018_1_bBandBytes+D'0')
+0274  0084  	MOVWF FSR0L
+0275  300A  	MOVLW 0x0A
+0276  0744  	ADDWF ssd1306Wri_00018_1_x, W
+0277  0784  	ADDWF FSR0L, F
+0278  0874  	MOVF ssd1306Wri_00018_35_bBandByte, W
+0279  0080  	MOVWF INDF0
+
+        }
+    }
+    
+    // Value display
+    char cDisplay[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+027C  01DE  	CLRF ssd1306Wri_00018_1_cDisplay
+027D  01DF  	CLRF ssd1306Wri_00018_1_cDisplay+D'1'
+027E  01E0  	CLRF ssd1306Wri_00018_1_cDisplay+D'2'
+027F  01E1  	CLRF ssd1306Wri_00018_1_cDisplay+D'3'
+0280  01E2  	CLRF ssd1306Wri_00018_1_cDisplay+D'4'
+0281  01E3  	CLRF ssd1306Wri_00018_1_cDisplay+D'5'
+0282  01E4  	CLRF ssd1306Wri_00018_1_cDisplay+D'6'
+0283  01E5  	CLRF ssd1306Wri_00018_1_cDisplay+D'7'
+0284  01E6  	CLRF ssd1306Wri_00018_1_cDisplay+D'8'
+0285  01E7  	CLRF ssd1306Wri_00018_1_cDisplay+D'9'
+
+    char showMinus = 0;
+0286  01E8  	CLRF ssd1306Wri_00018_1_showMinus
+
+    char showPlus = 0;
+0287  01E9  	CLRF ssd1306Wri_00018_1_showPlus
+
+    char iEndChars = 3;
+0288  3003  	MOVLW 0x03
+0289  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+    if (iActiveBand == 0) {
+028A  08BF  	MOVF gbl_iActiveBand, F
+028B  1D03  	BTFSS STATUS,Z
+028C  2B03  	GOTO	label45
+0303        label45
+
+        if (iVolume != 0) {
+028D  08C0  	MOVF gbl_iVolume, F
+028E  1903  	BTFSC STATUS,Z
+028F  2AFD  	GOTO	label44
+02FD        label44
+
+            cDisplay[0] = 11; // minus char
+0290  300B  	MOVLW 0x0B
+0291  00DE  	MOVWF ssd1306Wri_00018_1_cDisplay
+
+            // handle volume (attenuation) - multiply by 375
+            // 47 = -17.625
+            unsigned short iVolCalc = iVolume * 375;
+0292  0840  	MOVF gbl_iVolume, W
+0293  00F5  	MOVWF __mul_16u__0000D_arg_a
+0294  01F6  	CLRF __mul_16u__0000D_arg_a+D'1'
+0295  3077  	MOVLW 0x77
+0296  00F7  	MOVWF __mul_16u__0000D_arg_b
+0297  3001  	MOVLW 0x01
+0298  00F8  	MOVWF __mul_16u__0000D_arg_b+D'1'
+0299  217F  	CALL __mul_16u__0000D
+029A  087C  	MOVF CompTempVarRet382, W
+029B  00F3  	MOVWF ssd1306Wri_00018_43_iVolCalc
+029C  087D  	MOVF CompTempVarRet382+D'1', W
+029D  00F4  	MOVWF ssd1306Wri_00018_43_iVolCalc+D'1'
+
+            // determine the 10 thousands digit
+            if (iVolCalc >= 10000) {
+029E  3027  	MOVLW 0x27
+029F  0274  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02A0  1D03  	BTFSS STATUS,Z
+02A1  2AA4  	GOTO	label32
+02A2  3010  	MOVLW 0x10
+02A3  0273  	SUBWF ssd1306Wri_00018_43_iVolCalc, W
+02A4        label32
+02A4  1C03  	BTFSS STATUS,C
+02A5  2AB6  	GOTO	label35
+02A6        label33
+02B6        label35
+
+                while (iVolCalc >= 10000) {
+02A6  3027  	MOVLW 0x27
+02A7  0274  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02A8  1D03  	BTFSS STATUS,Z
+02A9  2AAC  	GOTO	label34
+02AA  3010  	MOVLW 0x10
+02AB  0273  	SUBWF ssd1306Wri_00018_43_iVolCalc, W
+02AC        label34
+02AC  1C03  	BTFSS STATUS,C
+02AD  2AB8  	GOTO	label36
+
+                    iVolCalc = iVolCalc - 10000;
+02AE  3010  	MOVLW 0x10
+02AF  02F3  	SUBWF ssd1306Wri_00018_43_iVolCalc, F
+02B0  3027  	MOVLW 0x27
+02B1  1C03  	BTFSS STATUS,C
+02B2  3028  	MOVLW 0x28
+02B3  02F4  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', F
+
+                    // each time we take off 10000, the digit is incremented
+                    cDisplay[1]++;
+02B4  0ADF  	INCF ssd1306Wri_00018_1_cDisplay+D'1', F
+
+                }
+            } else {
+02B8        label36
+
+                cDisplay[1] = 15; // no char
+02B6  300F  	MOVLW 0x0F
+02B7  00DF  	MOVWF ssd1306Wri_00018_1_cDisplay+D'1'
+
+            }
+            // determine the thousands digit
+            while (iVolCalc >= 1000) {
+02B8  3003  	MOVLW 0x03
+02B9  0274  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02BA  1D03  	BTFSS STATUS,Z
+02BB  2ABE  	GOTO	label37
+02BC  30E8  	MOVLW 0xE8
+02BD  0273  	SUBWF ssd1306Wri_00018_43_iVolCalc, W
+02BE        label37
+02BE  1C03  	BTFSS STATUS,C
+02BF  2AC8  	GOTO	label38
+02C7  2AB8  	GOTO	label36
+02C8        label38
+
+                iVolCalc = iVolCalc - 1000;
+02C0  30E8  	MOVLW 0xE8
+02C1  02F3  	SUBWF ssd1306Wri_00018_43_iVolCalc, F
+02C2  3003  	MOVLW 0x03
+02C3  1C03  	BTFSS STATUS,C
+02C4  3004  	MOVLW 0x04
+02C5  02F4  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', F
+
+                // each time we take off 1000, the digit is incremented
+                cDisplay[2]++;
+02C6  0AE0  	INCF ssd1306Wri_00018_1_cDisplay+D'2', F
+
+            }
+            if (iVolCalc > 0) {
+02C8  0873  	MOVF ssd1306Wri_00018_43_iVolCalc, W
+02C9  3C00  	SUBLW 0x00
+02CA  1803  	BTFSC STATUS,C
+02CB  0874  	MOVF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02CC  1903  	BTFSC STATUS,Z
+02CD  2B35  	GOTO	label50
+
+                // decimal point
+                cDisplay[3] = 10; // 10th element in dispNumbers is for the decimal
+02CE  300A  	MOVLW 0x0A
+02CF  00E1  	MOVWF ssd1306Wri_00018_1_cDisplay+D'3'
+
+                // determine the hundreds digit
+                while (iVolCalc >= 100) {
+02D0        label39
+02D0  3000  	MOVLW 0x00
+02D1  0274  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02D2  1D03  	BTFSS STATUS,Z
+02D3  2AD6  	GOTO	label40
+02D4  3064  	MOVLW 0x64
+02D5  0273  	SUBWF ssd1306Wri_00018_43_iVolCalc, W
+02D6        label40
+02D6  1C03  	BTFSS STATUS,C
+02D7  2AE1  	GOTO	label41
+02E0  2AD0  	GOTO	label39
+02E1        label41
+
+                    iVolCalc = iVolCalc - 100;
+02D8  3064  	MOVLW 0x64
+02D9  02F3  	SUBWF ssd1306Wri_00018_43_iVolCalc, F
+02DA  08F4  	MOVF ssd1306Wri_00018_43_iVolCalc+D'1', F
+02DB  1C03  	BTFSS STATUS,C
+02DC  03F4  	DECF ssd1306Wri_00018_43_iVolCalc+D'1', F
+
+                    // each time we take off 100, the digit is incremented
+                    cDisplay[4]++;
+02DD  0AE2  	INCF ssd1306Wri_00018_1_cDisplay+D'4', F
+
+                    iEndChars = 5;
+02DE  3005  	MOVLW 0x05
+02DF  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+                }
+                // determine the tens digit
+                while (iVolCalc >= 10) {
+02E1  3000  	MOVLW 0x00
+02E2  0274  	SUBWF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02E3  1D03  	BTFSS STATUS,Z
+02E4  2AE7  	GOTO	label42
+02E5  300A  	MOVLW 0x0A
+02E6  0273  	SUBWF ssd1306Wri_00018_43_iVolCalc, W
+02E7        label42
+02E7  1C03  	BTFSS STATUS,C
+02E8  2AF2  	GOTO	label43
+02F1  2AE1  	GOTO	label41
+02F2        label43
+
+                    iVolCalc = iVolCalc - 10;
+02E9  300A  	MOVLW 0x0A
+02EA  02F3  	SUBWF ssd1306Wri_00018_43_iVolCalc, F
+02EB  08F4  	MOVF ssd1306Wri_00018_43_iVolCalc+D'1', F
+02EC  1C03  	BTFSS STATUS,C
+02ED  03F4  	DECF ssd1306Wri_00018_43_iVolCalc+D'1', F
+
+                    // each time we take off 10, the digit is incremented
+                    cDisplay[5]++;
+02EE  0AE3  	INCF ssd1306Wri_00018_1_cDisplay+D'5', F
+
+                    iEndChars = 6;
+02EF  3006  	MOVLW 0x06
+02F0  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+                }
+                if (iVolCalc > 0) {
+02F2  0873  	MOVF ssd1306Wri_00018_43_iVolCalc, W
+02F3  3C00  	SUBLW 0x00
+02F4  1803  	BTFSC STATUS,C
+02F5  0874  	MOVF ssd1306Wri_00018_43_iVolCalc+D'1', W
+02F6  1903  	BTFSC STATUS,Z
+02F7  2B35  	GOTO	label50
+
+                    // the last digit is what's left on iVolCalc
+                    cDisplay[6] = iVolCalc & 0xFF;
+02F8  0873  	MOVF ssd1306Wri_00018_43_iVolCalc, W
+02F9  00E4  	MOVWF ssd1306Wri_00018_1_cDisplay+D'6'
+
+                    iEndChars = 7;
+02FA  3007  	MOVLW 0x07
+02FB  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+                }
+            }
+        } else {
+02FC  2B35  	GOTO	label50
+
+            cDisplay[0] = 15; // no char
+02FD  300F  	MOVLW 0x0F
+02FE  00DE  	MOVWF ssd1306Wri_00018_1_cDisplay
+
+            cDisplay[1] = 15; // no char
+02FF  00DF  	MOVWF ssd1306Wri_00018_1_cDisplay+D'1'
+
+            iEndChars = 3;
+0300  3003  	MOVLW 0x03
+0301  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+        }
+    } else {
+0302  2B35  	GOTO	label50
+
+        // handle EQ band
+        char iBand = iBands[iActiveBand - 1];
+0303  3000  	MOVLW	HIGH(gbl_iBands)
+
+0304  0085  	MOVWF FSR0H
+0305  3030  	MOVLW LOW(gbl_iBands+D'0')
+0306  0084  	MOVWF FSR0L
+0307  033F  	DECF gbl_iActiveBand, W
+0308  0784  	ADDWF FSR0L, F
+0309  0800  	MOVF INDF0, W
+030A  00F3  	MOVWF ssd1306Wri_00018_71_iBand
+
+        if (iBand > 0) {
+030B  0873  	MOVF ssd1306Wri_00018_71_iBand, W
+030C  3C00  	SUBLW 0x00
+030D  1803  	BTFSC STATUS,C
+030E  2B31  	GOTO	label49
+0331        label49
+
+            if (iBand <= 7) {
+030F  0873  	MOVF ssd1306Wri_00018_71_iBand, W
+0310  3C07  	SUBLW 0x07
+0311  1C03  	BTFSS STATUS,C
+0312  2B16  	GOTO	label46
+0316        label46
+
+                // Band is in boost
+                cDisplay[0] = 12; // plus char
+0313  300C  	MOVLW 0x0C
+0314  00DE  	MOVWF ssd1306Wri_00018_1_cDisplay
+
+            } else if (iBand > 8) {
+0315  2B1E  	GOTO	label47
+0316  0873  	MOVF ssd1306Wri_00018_71_iBand, W
+0317  3C08  	SUBLW 0x08
+0318  1803  	BTFSC STATUS,C
+0319  2B1E  	GOTO	label47
+031E        label47
+
+                // if band is in cut
+                cDisplay[0] = 11; // minus char
+031A  300B  	MOVLW 0x0B
+031B  00DE  	MOVWF ssd1306Wri_00018_1_cDisplay
+
+                iBand -= 8;
+031C  3008  	MOVLW 0x08
+031D  02F3  	SUBWF ssd1306Wri_00018_71_iBand, F
+
+            }
+            char iBandCalc = iBand * 2;
+031E  0873  	MOVF ssd1306Wri_00018_71_iBand, W
+031F  00F4  	MOVWF ssd1306Wri_00018_72_iBandCalc
+0320  35F4  	LSLF ssd1306Wri_00018_72_iBandCalc, F
+
+            if (iBandCalc >= 10) {
+0321  300A  	MOVLW 0x0A
+0322  0274  	SUBWF ssd1306Wri_00018_72_iBandCalc, W
+0323  1C03  	BTFSS STATUS,C
+0324  2B2C  	GOTO	label48
+032C        label48
+
+                cDisplay[1] = 1;
+0325  3001  	MOVLW 0x01
+0326  00DF  	MOVWF ssd1306Wri_00018_1_cDisplay+D'1'
+
+                iBandCalc -= 10;
+0327  300A  	MOVLW 0x0A
+0328  02F4  	SUBWF ssd1306Wri_00018_72_iBandCalc, F
+
+                cDisplay[2] = iBandCalc;
+0329  0874  	MOVF ssd1306Wri_00018_72_iBandCalc, W
+032A  00E0  	MOVWF ssd1306Wri_00018_1_cDisplay+D'2'
+
+            } else {
+032B  2B35  	GOTO	label50
+
+                cDisplay[1] = iBandCalc;
+032C  0874  	MOVF ssd1306Wri_00018_72_iBandCalc, W
+032D  00DF  	MOVWF ssd1306Wri_00018_1_cDisplay+D'1'
+
+                iEndChars = 2;
+032E  3002  	MOVLW 0x02
+032F  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+            }            
+        } else {
+0330  2B35  	GOTO	label50
+0335        label50
+
+            cDisplay[0] = 15; // no char
+0331  300F  	MOVLW 0x0F
+0332  00DE  	MOVWF ssd1306Wri_00018_1_cDisplay
+
+            iEndChars = 2;
+0333  3002  	MOVLW 0x02
+0334  00EA  	MOVWF ssd1306Wri_00018_1_iEndChars
+
+        }
+    }
+    // End with blank, dB then fill rest with blanks
+    cDisplay[iEndChars] = 15;
+0335  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_cDisplay)
+
+0336  0085  	MOVWF FSR0H
+0337  305E  	MOVLW LOW(ssd1306Wri_00018_1_cDisplay+D'0')
+0338  0084  	MOVWF FSR0L
+0339  086A  	MOVF ssd1306Wri_00018_1_iEndChars, W
+033A  0784  	ADDWF FSR0L, F
+033B  300F  	MOVLW 0x0F
+033C  0080  	MOVWF INDF0
+
+    iEndChars++;
+033D  0AEA  	INCF ssd1306Wri_00018_1_iEndChars, F
+
+    cDisplay[iEndChars] = 13;
+033E  305E  	MOVLW LOW(ssd1306Wri_00018_1_cDisplay+D'0')
+033F  0084  	MOVWF FSR0L
+0340  086A  	MOVF ssd1306Wri_00018_1_iEndChars, W
+0341  0784  	ADDWF FSR0L, F
+0342  300D  	MOVLW 0x0D
+0343  0080  	MOVWF INDF0
+
+    iEndChars++;
+0344  0AEA  	INCF ssd1306Wri_00018_1_iEndChars, F
+
+    cDisplay[iEndChars] = 14;
+0345  305E  	MOVLW LOW(ssd1306Wri_00018_1_cDisplay+D'0')
+0346  0084  	MOVWF FSR0L
+0347  086A  	MOVF ssd1306Wri_00018_1_iEndChars, W
+0348  0784  	ADDWF FSR0L, F
+0349  300E  	MOVLW 0x0E
+034A  0080  	MOVWF INDF0
+
+    iEndChars++;
+034B  0AEA  	INCF ssd1306Wri_00018_1_iEndChars, F
+
+    while (iEndChars <= 9) {
+034C        label51
+034C  086A  	MOVF ssd1306Wri_00018_1_iEndChars, W
+034D  3C09  	SUBLW 0x09
+034E  1C03  	BTFSS STATUS,C
+034F  2B5A  	GOTO	label52
+0359  2B4C  	GOTO	label51
+035A        label52
+
+        cDisplay[iEndChars] = 15;
+0350  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_cDisplay)
+
+0351  0085  	MOVWF FSR0H
+0352  305E  	MOVLW LOW(ssd1306Wri_00018_1_cDisplay+D'0')
+0353  0084  	MOVWF FSR0L
+0354  086A  	MOVF ssd1306Wri_00018_1_iEndChars, W
+0355  0784  	ADDWF FSR0L, F
+0356  300F  	MOVLW 0x0F
+0357  0080  	MOVWF INDF0
+
+        iEndChars++;
+0358  0AEA  	INCF ssd1306Wri_00018_1_iEndChars, F
+
+    }
+
+    ssd1306StartCommand();
+035A  2156  	CALL ssd1306Sta_00016
+
+    i2cWrite(0x22); // set page address 0 3
+035B  3022  	MOVLW 0x22
+035C  00F3  	MOVWF i2cWrite_00000_arg_data
+035D  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0); 
+035E  01F3  	CLRF i2cWrite_00000_arg_data
+035F  214F  	CALL i2cWrite_00000
+
+    i2cWrite(4); 
+0360  3004  	MOVLW 0x04
+0361  00F3  	MOVWF i2cWrite_00000_arg_data
+0362  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x21); // set column address 0
+0363  3021  	MOVLW 0x21
+0364  00F3  	MOVWF i2cWrite_00000_arg_data
+0365  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0); 
+0366  01F3  	CLRF i2cWrite_00000_arg_data
+0367  214F  	CALL i2cWrite_00000
+
+    i2cWrite(127);  // set column end address 127
+0368  307F  	MOVLW 0x7F
+0369  00F3  	MOVWF i2cWrite_00000_arg_data
+036A  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+036B  215D  	CALL i2cStop_00000
+
+    
+    // volume bars are at -0.75dB steps -> 23 steps from 0dB to -17.25dB
+    // eq bars are -2dB steps -> 7 steps cut, 7 steps boost from -14dB to -2dB then 2dB to 14dB
+
+    i2cStart();
+036C  2153  	CALL i2cStart_00000
+
+    i2cWrite(ssd1306_addr);
+036D  3078  	MOVLW 0x78
+036E  00F3  	MOVWF i2cWrite_00000_arg_data
+036F  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x40);
+0370  3040  	MOVLW 0x40
+0371  00F3  	MOVWF i2cWrite_00000_arg_data
+0372  214F  	CALL i2cWrite_00000
+
+    
+    char bByte;
+    char iCheckBand = 1;
+0373  3001  	MOVLW 0x01
+0374  0020  	MOVLB 0x00
+0375  00EC  	MOVWF ssd1306Wri_00018_1_iCheckBand
+
+    char iBandArea = 0;
+0376  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+    // First page has header and selected band
+    for (x = 0; x < 128; x++) {
+0377  01C4  	CLRF ssd1306Wri_00018_1_x
+0378        label53
+0378  3080  	MOVLW 0x80
+0379  0244  	SUBWF ssd1306Wri_00018_1_x, W
+037A  1803  	BTFSC STATUS,C
+037B  2BA3  	GOTO	label57
+03A0  0020  	MOVLB 0x00
+03A1  0AC4  	INCF ssd1306Wri_00018_1_x, F
+03A2  2B78  	GOTO	label53
+03A3        label57
+
+        bByte = dispHeader[x];
+037C  0843  	MOVF gbl_dispHeader, W
+037D  00F4  	MOVWF __rom_get_00000_arg_objNumb
+037E  0844  	MOVF ssd1306Wri_00018_1_x, W
+037F  00F5  	MOVWF __rom_get_00000_arg_idx
+0380  202F  	CALL __rom_get_00000
+0381  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+        if (x < 8) {
+0382  3008  	MOVLW 0x08
+0383  0244  	SUBWF ssd1306Wri_00018_1_x, W
+0384  3180  	MOVLP 0x00
+0385  1803  	BTFSC STATUS,C
+0386  2B8A  	GOTO	label54
+
+            if (iActiveBand == 0)
+0387  08BF  	MOVF gbl_iActiveBand, F
+0388  1903  	BTFSC STATUS,Z
+
+                bByte.6 = 1; // Set bit
+0389  176B  	BSF ssd1306Wri_00018_1_bByte,6
+038A        label54
+
+        } 
+        if (x >= 10) {
+038A  300A  	MOVLW 0x0A
+038B  0244  	SUBWF ssd1306Wri_00018_1_x, W
+038C  1C03  	BTFSS STATUS,C
+038D  2B9D  	GOTO	label56
+
+            if ((iBandArea < 10) && (iCheckBand == iActiveBand))
+038E  300A  	MOVLW 0x0A
+038F  026D  	SUBWF ssd1306Wri_00018_1_iBandArea, W
+0390  1803  	BTFSC STATUS,C
+0391  2B96  	GOTO	label55
+0392  083F  	MOVF gbl_iActiveBand, W
+0393  066C  	XORWF ssd1306Wri_00018_1_iCheckBand, W
+0394  1903  	BTFSC STATUS,Z
+
+                bByte.6 = 1; // Set bit
+0395  176B  	BSF ssd1306Wri_00018_1_bByte,6
+0396        label55
+
+            iBandArea++;
+0396  0AED  	INCF ssd1306Wri_00018_1_iBandArea, F
+
+            if (iBandArea == 12) {
+0397  086D  	MOVF ssd1306Wri_00018_1_iBandArea, W
+0398  3A0C  	XORLW 0x0C
+0399  1D03  	BTFSS STATUS,Z
+039A  2B9D  	GOTO	label56
+039D        label56
+
+                iBandArea = 0;
+039B  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+                iCheckBand++;
+039C  0AEC  	INCF ssd1306Wri_00018_1_iCheckBand, F
+
+            }
+        }
+        i2cWrite(bByte);
+039D  086B  	MOVF ssd1306Wri_00018_1_bByte, W
+039E  00F3  	MOVWF i2cWrite_00000_arg_data
+039F  214F  	CALL i2cWrite_00000
+
+    }
+    // Second page for +2dB to +14dB (7 steps) + centre line
+    // also volume from 0dB to 
+    iBandArea = 0;
+03A3  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+    iCheckBand = 0;
+03A4  01EC  	CLRF ssd1306Wri_00018_1_iCheckBand
+
+    // Set final pixels and write to display
+    for (x = 0; x < 128; x++) {
+03A5  01C4  	CLRF ssd1306Wri_00018_1_x
+03A6        label58
+03A6  3080  	MOVLW 0x80
+03A7  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03A8  1803  	BTFSC STATUS,C
+03A9  2BDE  	GOTO	label62
+03DB  0020  	MOVLB 0x00
+03DC  0AC4  	INCF ssd1306Wri_00018_1_x, F
+03DD  2BA6  	GOTO	label58
+03DE        label62
+
+        bByte = 0;
+03AA  01EB  	CLRF ssd1306Wri_00018_1_bByte
+
+        if ((x >= 1) && (x <= 6)) {
+03AB  3001  	MOVLW 0x01
+03AC  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03AD  1C03  	BTFSS STATUS,C
+03AE  2BB6  	GOTO	label59
+03AF  0844  	MOVF ssd1306Wri_00018_1_x, W
+03B0  3C06  	SUBLW 0x06
+03B1  1C03  	BTFSS STATUS,C
+03B2  2BB6  	GOTO	label59
+03B6        label59
+
+            bByte = bVolByte[0];
+03B3  0847  	MOVF ssd1306Wri_00018_1_bVolByte, W
+03B4  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+        } else if (x >= 10) {
+03B5  2BD8  	GOTO	label61
+03B6  300A  	MOVLW 0x0A
+03B7  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03B8  1C03  	BTFSS STATUS,C
+03B9  2BD8  	GOTO	label61
+
+            if ((iBandArea > 0) && (iBandArea < 9)) {
+03BA  086D  	MOVF ssd1306Wri_00018_1_iBandArea, W
+03BB  3C00  	SUBLW 0x00
+03BC  1803  	BTFSC STATUS,C
+03BD  2BCD  	GOTO	label60
+03BE  3009  	MOVLW 0x09
+03BF  026D  	SUBWF ssd1306Wri_00018_1_iBandArea, W
+03C0  1803  	BTFSC STATUS,C
+03C1  2BCD  	GOTO	label60
+03CD        label60
+
+                bByte = bBandBytes[iCheckBand] >> 1;
+03C2  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_bBandBytes)
+
+03C3  0085  	MOVWF FSR0H
+03C4  304A  	MOVLW LOW(ssd1306Wri_00018_1_bBandBytes+D'0')
+03C5  0084  	MOVWF FSR0L
+03C6  086C  	MOVF ssd1306Wri_00018_1_iCheckBand, W
+03C7  0784  	ADDWF FSR0L, F
+03C8  0800  	MOVF INDF0, W
+03C9  00F3  	MOVWF CompTempVar629
+03CA  1003  	BCF STATUS,C
+03CB  0C73  	RRF CompTempVar629, W
+03CC  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+            }
+            if (iBandArea < 10)
+03CD  300A  	MOVLW 0x0A
+03CE  026D  	SUBWF ssd1306Wri_00018_1_iBandArea, W
+03CF  1C03  	BTFSS STATUS,C
+
+                bByte.7 = 1; // Set bit
+03D0  17EB  	BSF ssd1306Wri_00018_1_bByte,7
+
+            iBandArea++;
+03D1  0AED  	INCF ssd1306Wri_00018_1_iBandArea, F
+
+            if (iBandArea == 12) {
+03D2  086D  	MOVF ssd1306Wri_00018_1_iBandArea, W
+03D3  3A0C  	XORLW 0x0C
+03D4  1D03  	BTFSS STATUS,Z
+03D5  2BD8  	GOTO	label61
+03D8        label61
+
+                iBandArea = 0;
+03D6  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+                iCheckBand++;
+03D7  0AEC  	INCF ssd1306Wri_00018_1_iCheckBand, F
+
+            }
+        }
+        i2cWrite(bByte);
+03D8  086B  	MOVF ssd1306Wri_00018_1_bByte, W
+03D9  00F3  	MOVWF i2cWrite_00000_arg_data
+03DA  214F  	CALL i2cWrite_00000
+
+    }
+
+    // Set final pixels and write to display
+    iBandArea = 0;
+03DE  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+    iCheckBand = 0;
+03DF  01EC  	CLRF ssd1306Wri_00018_1_iCheckBand
+
+    for (x = 0; x < 128; x++) {
+03E0  01C4  	CLRF ssd1306Wri_00018_1_x
+03E1        label63
+03E1  3080  	MOVLW 0x80
+03E2  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03E3  1803  	BTFSC STATUS,C
+03E4  2C13  	GOTO	label67
+0410  0020  	MOVLB 0x00
+0411  0AC4  	INCF ssd1306Wri_00018_1_x, F
+0412  2BE1  	GOTO	label63
+0413        label67
+
+        bByte = 0;
+03E5  01EB  	CLRF ssd1306Wri_00018_1_bByte
+
+        if ((x >= 1) && (x <= 6)) {
+03E6  3001  	MOVLW 0x01
+03E7  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03E8  1C03  	BTFSS STATUS,C
+03E9  2BF1  	GOTO	label64
+03EA  0844  	MOVF ssd1306Wri_00018_1_x, W
+03EB  3C06  	SUBLW 0x06
+03EC  1C03  	BTFSS STATUS,C
+03ED  2BF1  	GOTO	label64
+03F1        label64
+
+            bByte = bVolByte[1];
+03EE  0848  	MOVF ssd1306Wri_00018_1_bVolByte+D'1', W
+03EF  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+        } else if (x >= 10) {
+03F0  2C0D  	GOTO	label66
+03F1  300A  	MOVLW 0x0A
+03F2  0244  	SUBWF ssd1306Wri_00018_1_x, W
+03F3  1C03  	BTFSS STATUS,C
+03F4  2C0D  	GOTO	label66
+
+            if ((iBandArea > 0) && (iBandArea < 9)) {
+03F5  086D  	MOVF ssd1306Wri_00018_1_iBandArea, W
+03F6  3C00  	SUBLW 0x00
+03F7  1803  	BTFSC STATUS,C
+03F8  2C06  	GOTO	label65
+03F9  3009  	MOVLW 0x09
+03FA  026D  	SUBWF ssd1306Wri_00018_1_iBandArea, W
+03FB  1803  	BTFSC STATUS,C
+03FC  2C06  	GOTO	label65
+0406        label65
+
+                bByte = bBandBytes[iCheckBand + 10];
+03FD  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_bBandBytes)
+
+03FE  0085  	MOVWF FSR0H
+03FF  304A  	MOVLW LOW(ssd1306Wri_00018_1_bBandBytes+D'0')
+0400  0084  	MOVWF FSR0L
+0401  300A  	MOVLW 0x0A
+0402  076C  	ADDWF ssd1306Wri_00018_1_iCheckBand, W
+0403  0784  	ADDWF FSR0L, F
+0404  0800  	MOVF INDF0, W
+0405  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+            }
+            iBandArea++;
+0406  0AED  	INCF ssd1306Wri_00018_1_iBandArea, F
+
+            if (iBandArea == 12) {
+0407  086D  	MOVF ssd1306Wri_00018_1_iBandArea, W
+0408  3A0C  	XORLW 0x0C
+0409  1D03  	BTFSS STATUS,Z
+040A  2C0D  	GOTO	label66
+040D        label66
+
+                iBandArea = 0;
+040B  01ED  	CLRF ssd1306Wri_00018_1_iBandArea
+
+                iCheckBand++;
+040C  0AEC  	INCF ssd1306Wri_00018_1_iCheckBand, F
+
+            }
+        }
+        i2cWrite(bByte);
+040D  086B  	MOVF ssd1306Wri_00018_1_bByte, W
+040E  00F3  	MOVWF i2cWrite_00000_arg_data
+040F  214F  	CALL i2cWrite_00000
+
+    }
+
+    // Fourth page band text
+    // Calculate the value to display
+    char iCharCol = 0; // From 0 to 5, repeats for each character
+0413  01EE  	CLRF ssd1306Wri_00018_1_iCharCol
+
+    char iDoDisplayChar = 0; // changes to 1 when non-zero number is found
+0414  01EF  	CLRF ssd1306Wri_00018_1_iDoDisp_00019
+
+    char iCharsDisplayed = 0;
+0415  01F0  	CLRF ssd1306Wri_00018_1_iCharsD_0001A
+
+    char cCurrent = 0;
+0416  01F1  	CLRF ssd1306Wri_00018_1_cCurrent
+
+    char iDoEndDisplayChar = 0;
+0417  01F2  	CLRF ssd1306Wri_00018_1_iDoEndD_0001B
+
+    // Set final pixels and write to display
+    for (x = 0; x < 128; x++) {
+0418  01C4  	CLRF ssd1306Wri_00018_1_x
+0419        label68
+0419  3080  	MOVLW 0x80
+041A  0244  	SUBWF ssd1306Wri_00018_1_x, W
+041B  1803  	BTFSC STATUS,C
+041C  2C66  	GOTO	label74
+0463  0020  	MOVLB 0x00
+0464  0AC4  	INCF ssd1306Wri_00018_1_x, F
+0465  2C19  	GOTO	label68
+0466        label74
+
+        bByte = 0;
+041D  01EB  	CLRF ssd1306Wri_00018_1_bByte
+
+        if ((x >= 1) && (x <= 6)) {
+041E  3001  	MOVLW 0x01
+041F  0244  	SUBWF ssd1306Wri_00018_1_x, W
+0420  1C03  	BTFSS STATUS,C
+0421  2C28  	GOTO	label69
+0422  0844  	MOVF ssd1306Wri_00018_1_x, W
+0423  3C06  	SUBLW 0x06
+0424  1C03  	BTFSS STATUS,C
+0425  2C28  	GOTO	label69
+0428        label69
+
+            bByte = bVolByte[2];
+0426  0849  	MOVF ssd1306Wri_00018_1_bVolByte+D'2', W
+0427  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+        }
+        // vol line
+        if (x < 8) {
+0428  3008  	MOVLW 0x08
+0429  0244  	SUBWF ssd1306Wri_00018_1_x, W
+042A  1803  	BTFSC STATUS,C
+042B  2C2E  	GOTO	label70
+042E        label70
+
+            bByte.7 = 1; // Set bit
+042C  17EB  	BSF ssd1306Wri_00018_1_bByte,7
+
+        } else if ((x > 44) && (iCharsDisplayed < 10)) {
+042D  2C60  	GOTO	label73
+042E  0844  	MOVF ssd1306Wri_00018_1_x, W
+042F  3C2C  	SUBLW 0x2C
+0430  1803  	BTFSC STATUS,C
+0431  2C60  	GOTO	label73
+0432  300A  	MOVLW 0x0A
+0433  0270  	SUBWF ssd1306Wri_00018_1_iCharsD_0001A, W
+0434  1803  	BTFSC STATUS,C
+0435  2C60  	GOTO	label73
+
+            if (iCharCol == 0) {
+0436  08EE  	MOVF ssd1306Wri_00018_1_iCharCol, F
+0437  1D03  	BTFSS STATUS,Z
+0438  2C41  	GOTO	label71
+0441        label71
+
+                // Get the character
+                cCurrent = cDisplay[iCharsDisplayed];
+0439  3000  	MOVLW	HIGH(ssd1306Wri_00018_1_cDisplay)
+
+043A  0085  	MOVWF FSR0H
+043B  305E  	MOVLW LOW(ssd1306Wri_00018_1_cDisplay+D'0')
+043C  0084  	MOVWF FSR0L
+043D  0870  	MOVF ssd1306Wri_00018_1_iCharsD_0001A, W
+043E  0784  	ADDWF FSR0L, F
+043F  0800  	MOVF INDF0, W
+0440  00F1  	MOVWF ssd1306Wri_00018_1_cCurrent
+
+            }
+            // For the first 5 columns, get the byte from the relevant array
+            if (iCharCol < 5) {
+0441  3005  	MOVLW 0x05
+0442  026E  	SUBWF ssd1306Wri_00018_1_iCharCol, W
+0443  1803  	BTFSC STATUS,C
+0444  2C58  	GOTO	label72
+
+                if (cCurrent < 15)
+0445  300F  	MOVLW 0x0F
+0446  0271  	SUBWF ssd1306Wri_00018_1_cCurrent, W
+0447  1803  	BTFSC STATUS,C
+0448  2C58  	GOTO	label72
+0458        label72
+
+                    bByte = dispChar[(cCurrent * 5) + iCharCol];
+0449  0842  	MOVF gbl_dispChar, W
+044A  00F4  	MOVWF __rom_get_00000_arg_objNumb
+044B  0871  	MOVF ssd1306Wri_00018_1_cCurrent, W
+044C  00F6  	MOVWF __mul_8u_8_00007_arg_a
+044D  3005  	MOVLW 0x05
+044E  00F7  	MOVWF __mul_8u_8_00007_arg_b
+044F  2169  	CALL __mul_8u_8_00007
+0450  087B  	MOVF CompTempVarRet379, W
+0451  00F5  	MOVWF __rom_get_00000_arg_idx
+0452  087C  	MOVF CompTempVarRet379+D'1', W
+0453  00F3  	MOVWF CompTempVar637
+0454  086E  	MOVF ssd1306Wri_00018_1_iCharCol, W
+0455  07F5  	ADDWF __rom_get_00000_arg_idx, F
+0456  202F  	CALL __rom_get_00000
+0457  00EB  	MOVWF ssd1306Wri_00018_1_bByte
+
+            }
+            iCharCol++;
+0458  0AEE  	INCF ssd1306Wri_00018_1_iCharCol, F
+
+            // If past 6 columns, move to the next character. The 6th column remains empty
+            if (iCharCol > 5) {
+0459  086E  	MOVF ssd1306Wri_00018_1_iCharCol, W
+045A  3C05  	SUBLW 0x05
+045B  3180  	MOVLP 0x00
+045C  1803  	BTFSC STATUS,C
+045D  2C60  	GOTO	label73
+0460        label73
+
+                iCharCol = 0;
+045E  01EE  	CLRF ssd1306Wri_00018_1_iCharCol
+
+                iCharsDisplayed++;
+045F  0AF0  	INCF ssd1306Wri_00018_1_iCharsD_0001A, F
+
+            }
+        }
+        i2cWrite(bByte);
+0460  086B  	MOVF ssd1306Wri_00018_1_bByte, W
+0461  00F3  	MOVWF i2cWrite_00000_arg_data
+0462  214F  	CALL i2cWrite_00000
+
+    }
+
+    i2cStop();
+0466  215D  	CALL i2cStop_00000
+
+}
+0467  0008  	RETURN
+
+
+/***********************************************************************************
+  TDA7317 methods
+************************************************************************************/
+void tda7317WriteByte(char iAddr, char iByte) {
+    i2cStart();
+    i2cWrite(iAddr); // send TDA7439 i2c address
+    i2cWrite(iByte);
+    i2cStop();
+    
+}
+
+void tda7317Write() {
+
+    // B chip
+    /*tda7317WriteByte(tda7317_addr1, iVolume);
+    tda7317WriteByte(tda7317_addr1, 0x80 + iBands[8]);
+    tda7317WriteByte(tda7317_addr1, 0x90 + iBands[2]);
+    tda7317WriteByte(tda7317_addr1, 0xA0 + iBands[4]);
+    tda7317WriteByte(tda7317_addr1, 0xB0 + iBands[6]);
+    tda7317WriteByte(tda7317_addr1, 0xC0 + iBands[0]);
+    
+    // A chip
+    tda7317WriteByte(tda7317_addr2, 0);
+    tda7317WriteByte(tda7317_addr2, 0x80 + iBands[9]);
+    tda7317WriteByte(tda7317_addr2, 0x90 + iBands[3]);
+    tda7317WriteByte(tda7317_addr2, 0xA0 + iBands[5]);
+    tda7317WriteByte(tda7317_addr2, 0xB0 + iBands[7]);
+    tda7317WriteByte(tda7317_addr2, 0xC0 + iBands[1]);*/
+    
+    // B chip
+    i2cStart();
+0198  2153  	CALL i2cStart_00000
+
+    i2cWrite(tda7317_addr1); // send TDA7439 i2c address
+0199  3084  	MOVLW 0x84
+019A  00F3  	MOVWF i2cWrite_00000_arg_data
+019B  214F  	CALL i2cWrite_00000
+
+    i2cWrite(iVolume); // send TDA7439 sub address
+019C  0020  	MOVLB 0x00
+019D  0840  	MOVF gbl_iVolume, W
+019E  00F3  	MOVWF i2cWrite_00000_arg_data
+019F  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x80 + iBands[8]); // 8kHz
+01A0  0020  	MOVLB 0x00
+01A1  0838  	MOVF gbl_iBands+D'8', W
+01A2  3E80  	ADDLW 0x80
+01A3  00F3  	MOVWF i2cWrite_00000_arg_data
+01A4  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x90 + iBands[2]); // 120Hz
+01A5  0020  	MOVLB 0x00
+01A6  0832  	MOVF gbl_iBands+D'2', W
+01A7  3E90  	ADDLW 0x90
+01A8  00F3  	MOVWF i2cWrite_00000_arg_data
+01A9  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA0 + iBands[4]); // 500Hz
+01AA  0020  	MOVLB 0x00
+01AB  0834  	MOVF gbl_iBands+D'4', W
+01AC  3EA0  	ADDLW 0xA0
+01AD  00F3  	MOVWF i2cWrite_00000_arg_data
+01AE  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xB0 + iBands[6]); // 2kHz
+01AF  0020  	MOVLB 0x00
+01B0  0836  	MOVF gbl_iBands+D'6', W
+01B1  3EB0  	ADDLW 0xB0
+01B2  00F3  	MOVWF i2cWrite_00000_arg_data
+01B3  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xC0 + iBands[0]); // 30Hz
+01B4  0020  	MOVLB 0x00
+01B5  0830  	MOVF gbl_iBands, W
+01B6  3EC0  	ADDLW 0xC0
+01B7  00F3  	MOVWF i2cWrite_00000_arg_data
+01B8  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+01B9  215D  	CALL i2cStop_00000
+
+    
+    delay_us(20);
+01BA  3014  	MOVLW 0x14
+01BB  0020  	MOVLB 0x00
+01BC  00C4  	MOVWF delay_us_00000_arg_del
+01BD  2007  	CALL delay_us_00000
+
+    
+    // A chip
+    i2cStart();
+01BE  2153  	CALL i2cStart_00000
+
+    i2cWrite(tda7317_addr2); // send TDA7439 i2c address
+01BF  3086  	MOVLW 0x86
+01C0  00F3  	MOVWF i2cWrite_00000_arg_data
+01C1  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0); // volume is always max on the second chip
+01C2  01F3  	CLRF i2cWrite_00000_arg_data
+01C3  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x80 + iBands[9]); // 16kHz
+01C4  0020  	MOVLB 0x00
+01C5  0839  	MOVF gbl_iBands+D'9', W
+01C6  3E80  	ADDLW 0x80
+01C7  00F3  	MOVWF i2cWrite_00000_arg_data
+01C8  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0x90 + iBands[3]); // 250Hz
+01C9  0020  	MOVLB 0x00
+01CA  0833  	MOVF gbl_iBands+D'3', W
+01CB  3E90  	ADDLW 0x90
+01CC  00F3  	MOVWF i2cWrite_00000_arg_data
+01CD  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xA0 + iBands[5]); // 1kHz
+01CE  0020  	MOVLB 0x00
+01CF  0835  	MOVF gbl_iBands+D'5', W
+01D0  3EA0  	ADDLW 0xA0
+01D1  00F3  	MOVWF i2cWrite_00000_arg_data
+01D2  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xB0 + iBands[7]); // 4kHz
+01D3  0020  	MOVLB 0x00
+01D4  0837  	MOVF gbl_iBands+D'7', W
+01D5  3EB0  	ADDLW 0xB0
+01D6  00F3  	MOVWF i2cWrite_00000_arg_data
+01D7  214F  	CALL i2cWrite_00000
+
+    i2cWrite(0xC0 + iBands[1]); // 60Hz
+01D8  0020  	MOVLB 0x00
+01D9  0831  	MOVF gbl_iBands+D'1', W
+01DA  3EC0  	ADDLW 0xC0
+01DB  00F3  	MOVWF i2cWrite_00000_arg_data
+01DC  214F  	CALL i2cWrite_00000
+
+    i2cStop();
+01DD  215D  	CALL i2cStop_00000
+
+}
+01DE  0008  	RETURN
+
+
+/***********************************************************************************
+  Rotary encoder turned
+************************************************************************************/
+char encoderCheck(char in, char encoder) {
+
+    /*
+    https://www.best-microcontroller-projects.com/rotary-encoder.html
+    */
+    char returnDirection = 0;
+056F  01C7  	CLRF encoderChe_0001E_1_returnD_0001F
+
+    unsigned char lPrevNextCode = rencPrevNextCode[encoder];
+0570  3000  	MOVLW	HIGH(gbl_12_rencPrevNextCode)
+
+0571  0085  	MOVWF FSR0H
+0572  303A  	MOVLW LOW(gbl_12_rencPrevNextCode+D'0')
+0573  0084  	MOVWF FSR0L
+0574  0846  	MOVF encoderChe_0001E_arg_encoder, W
+0575  0784  	ADDWF FSR0L, F
+0576  0800  	MOVF INDF0, W
+0577  00C8  	MOVWF encoderChe_0001E_1_lPrevNextCode
+
+    unsigned char lStore = rencStore[encoder];
+0578  3000  	MOVLW	HIGH(gbl_12_rencStore)
+
+0579  0085  	MOVWF FSR0H
+057A  303C  	MOVLW LOW(gbl_12_rencStore+D'0')
+057B  0084  	MOVWF FSR0L
+057C  0846  	MOVF encoderChe_0001E_arg_encoder, W
+057D  0784  	ADDWF FSR0L, F
+057E  0800  	MOVF INDF0, W
+057F  00C9  	MOVWF encoderChe_0001E_1_lStore
+
+    lPrevNextCode = lPrevNextCode << 2;
+0580  08C8  	MOVF encoderChe_0001E_1_lPrevNextCode, F
+0581  0DC8  	RLF encoderChe_0001E_1_lPrevNextCode, F
+0582  0DC8  	RLF encoderChe_0001E_1_lPrevNextCode, F
+0583  30FC  	MOVLW 0xFC
+0584  05C8  	ANDWF encoderChe_0001E_1_lPrevNextCode, F
+
+    lPrevNextCode |= in;
+0585  0845  	MOVF encoderChe_0001E_arg_in, W
+0586  04C8  	IORWF encoderChe_0001E_1_lPrevNextCode, F
+
+    lPrevNextCode &= 0x0F;
+0587  300F  	MOVLW 0x0F
+0588  05C8  	ANDWF encoderChe_0001E_1_lPrevNextCode, F
+
+    rencPrevNextCode[encoder] = lPrevNextCode;
+0589  3000  	MOVLW	HIGH(gbl_12_rencPrevNextCode)
+
+058A  0085  	MOVWF FSR0H
+058B  303A  	MOVLW LOW(gbl_12_rencPrevNextCode+D'0')
+058C  0084  	MOVWF FSR0L
+058D  0846  	MOVF encoderChe_0001E_arg_encoder, W
+058E  0784  	ADDWF FSR0L, F
+058F  0848  	MOVF encoderChe_0001E_1_lPrevNextCode, W
+0590  0080  	MOVWF INDF0
+
+
+    // If valid then store as 16 bit data.
+    if (rencTable[lPrevNextCode]) {
+0591  0820  	MOVF gbl_rencTable, W
+0592  00F4  	MOVWF __rom_get_00000_arg_objNumb
+0593  0848  	MOVF encoderChe_0001E_1_lPrevNextCode, W
+0594  00F5  	MOVWF __rom_get_00000_arg_idx
+0595  35F5  	LSLF __rom_get_00000_arg_idx, F
+0596  202F  	CALL __rom_get_00000
+0597  39FF  	ANDLW 0xFF
+0598  3180  	MOVLP 0x00
+0599  1903  	BTFSC STATUS,Z
+059A  2DB4  	GOTO	label82
+
+        lStore = lStore << 4;
+059B  0E49  	SWAPF encoderChe_0001E_1_lStore, W
+059C  39F0  	ANDLW 0xF0
+059D  00C9  	MOVWF encoderChe_0001E_1_lStore
+
+        lStore |= lPrevNextCode;
+059E  0848  	MOVF encoderChe_0001E_1_lPrevNextCode, W
+059F  04C9  	IORWF encoderChe_0001E_1_lStore, F
+
+        rencStore[encoder] = lStore;
+05A0  3000  	MOVLW	HIGH(gbl_12_rencStore)
+
+05A1  0085  	MOVWF FSR0H
+05A2  303C  	MOVLW LOW(gbl_12_rencStore+D'0')
+05A3  0084  	MOVWF FSR0L
+05A4  0846  	MOVF encoderChe_0001E_arg_encoder, W
+05A5  0784  	ADDWF FSR0L, F
+05A6  0849  	MOVF encoderChe_0001E_1_lStore, W
+05A7  0080  	MOVWF INDF0
+
+        
+        // 0010 1011
+        //if (lStore == 0x2B)
+        if (lStore == 0x2A) 
+05A8  0849  	MOVF encoderChe_0001E_1_lStore, W
+05A9  3A2A  	XORLW 0x2A
+05AA  1D03  	BTFSS STATUS,Z
+05AB  2DAE  	GOTO	label81
+05AE        label81
+
+            returnDirection = 4;
+05AC  3004  	MOVLW 0x04
+05AD  00C7  	MOVWF encoderChe_0001E_1_returnD_0001F
+
+        // 0001 0111
+        if (lStore == 0x17) 
+05AE  0849  	MOVF encoderChe_0001E_1_lStore, W
+05AF  3A17  	XORLW 0x17
+05B0  1D03  	BTFSS STATUS,Z
+05B1  2DB4  	GOTO	label82
+05B4        label82
+
+            returnDirection = 3;
+05B2  3003  	MOVLW 0x03
+05B3  00C7  	MOVWF encoderChe_0001E_1_returnD_0001F
+
+
+    }
+    
+    /*if(lStore != 0xFF) {
+        i2cStart();
+        i2cWrite(0x04);
+        i2cWrite(lStore & 0xFF);
+        i2cStop();
+    }*/
+
+    return returnDirection;
+05B4  0847  	MOVF encoderChe_0001E_1_returnD_0001F, W
+05B5  00CA  	MOVWF CompTempVarRet658
+
+}
+05B6  0008  	RETURN
+
+
+// Action for the first encoder - select the relevant band
+void actionRotarySelect(char direction) {
+
+    if (direction == 3) {
+0612  0844  	MOVF actionRota_00020_arg_direction, W
+0613  3A03  	XORLW 0x03
+0614  1D03  	BTFSS STATUS,Z
+0615  2E1F  	GOTO	label96
+061F        label96
+
+        if (iActiveBand == 10)
+0616  083F  	MOVF gbl_iActiveBand, W
+0617  3A0A  	XORLW 0x0A
+0618  1D03  	BTFSS STATUS,Z
+0619  2E1C  	GOTO	label94
+061C        label94
+
+            iActiveBand = 0;
+061A  01BF  	CLRF gbl_iActiveBand
+
+        else
+061B  2E1D  	GOTO	label95
+061D        label95
+
+            iActiveBand++;
+061C  0ABF  	INCF gbl_iActiveBand, F
+
+        cTask.TASK_ENCODER_SELECT = 1;
+061D  14BE  	BSF gbl_cTask,1
+
+    } else if (direction == 4) {
+061F  0844  	MOVF actionRota_00020_arg_direction, W
+0620  3A04  	XORLW 0x04
+0621  1D03  	BTFSS STATUS,Z
+
+        if (iActiveBand == 0)
+0623  08BF  	MOVF gbl_iActiveBand, F
+0624  1D03  	BTFSS STATUS,Z
+0625  2E29  	GOTO	label97
+0629        label97
+
+            iActiveBand = 10;
+0626  300A  	MOVLW 0x0A
+0627  00BF  	MOVWF gbl_iActiveBand
+
+        else
+0628  2E2A  	GOTO	label98
+062A        label98
+
+            iActiveBand--;
+0629  03BF  	DECF gbl_iActiveBand, F
+
+        cTask.TASK_ENCODER_SELECT = 1;
+062A  14BE  	BSF gbl_cTask,1
+
+    }
+}
+061E  0008  	RETURN
+0622  0008  	RETURN
+062B  0008  	RETURN
+
+
+// Action for the second encoder - adjust the relevant band
+void actionRotaryAdjust(char direction) {
+
+    if (direction) {
+05B7  08C4  	MOVF actionRota_00021_arg_direction, F
+05B8  1903  	BTFSC STATUS,Z
+
+        char iAdjustBand = iActiveBand - 1;
+05BA  033F  	DECF gbl_iActiveBand, W
+05BB  00C5  	MOVWF actionRota_00021_2_iAdjustBand
+
+        char iBand = 0;
+05BC  01C6  	CLRF actionRota_00021_2_iBand
+
+        if (iActiveBand != 0) {
+05BD  08BF  	MOVF gbl_iActiveBand, F
+05BE  1903  	BTFSC STATUS,Z
+05BF  2DC8  	GOTO	label83
+05C8        label83
+
+            iBand = iBands[iAdjustBand];
+05C0  3000  	MOVLW	HIGH(gbl_iBands)
+
+05C1  0085  	MOVWF FSR0H
+05C2  3030  	MOVLW LOW(gbl_iBands+D'0')
+05C3  0084  	MOVWF FSR0L
+05C4  0845  	MOVF actionRota_00021_2_iAdjustBand, W
+05C5  0784  	ADDWF FSR0L, F
+05C6  0800  	MOVF INDF0, W
+05C7  00C6  	MOVWF actionRota_00021_2_iBand
+
+        }
+        if (direction == 3) {
+05C8  0844  	MOVF actionRota_00021_arg_direction, W
+05C9  3A03  	XORLW 0x03
+05CA  1D03  	BTFSS STATUS,Z
+05CB  2DEC  	GOTO	label88
+05EC        label88
+
+            if (iActiveBand == 0) {
+05CC  08BF  	MOVF gbl_iActiveBand, F
+05CD  1D03  	BTFSS STATUS,Z
+05CE  2DD4  	GOTO	label84
+05D4        label84
+
+                // increase volume, which means decrementing attenuation iVolume
+                if (iVolume > 0)
+05CF  0840  	MOVF gbl_iVolume, W
+05D0  3C00  	SUBLW 0x00
+05D1  1C03  	BTFSS STATUS,C
+
+                    iVolume--;
+05D2  03C0  	DECF gbl_iVolume, F
+
+            } else {
+05D3  2DEA  	GOTO	label87
+05EA        label87
+
+                // nothing happens if band is 7 (max boost)
+                if (iBand < 7) {
+05D4  3007  	MOVLW 0x07
+05D5  0246  	SUBWF actionRota_00021_2_iBand, W
+05D6  1803  	BTFSC STATUS,C
+05D7  2DDA  	GOTO	label85
+05DA        label85
+
+                    // if band is 0 or in boost, increment boost
+                    iBand++;
+05D8  0AC6  	INCF actionRota_00021_2_iBand, F
+
+                } else if (iBand > 8) {
+05D9  2DDE  	GOTO	label86
+05DA  0846  	MOVF actionRota_00021_2_iBand, W
+05DB  3C08  	SUBLW 0x08
+05DC  1C03  	BTFSS STATUS,C
+
+                    // if band is in cut, decrement cut
+                    iBand--;
+05DD  03C6  	DECF actionRota_00021_2_iBand, F
+05DE        label86
+
+                }
+                if (iBand == 8) {
+05DE  0846  	MOVF actionRota_00021_2_iBand, W
+05DF  3A08  	XORLW 0x08
+05E0  1903  	BTFSC STATUS,Z
+
+                    // 8 should reset to 0
+                    iBand = 0;
+05E1  01C6  	CLRF actionRota_00021_2_iBand
+
+                }
+                iBands[iAdjustBand] = iBand;
+05E2  3000  	MOVLW	HIGH(gbl_iBands)
+
+05E3  0085  	MOVWF FSR0H
+05E4  3030  	MOVLW LOW(gbl_iBands+D'0')
+05E5  0084  	MOVWF FSR0L
+05E6  0845  	MOVF actionRota_00021_2_iAdjustBand, W
+05E7  0784  	ADDWF FSR0L, F
+05E8  0846  	MOVF actionRota_00021_2_iBand, W
+05E9  0080  	MOVWF INDF0
+
+            }
+            cTask.TASK_ENCODER_ADJUST = 1;
+05EA  153E  	BSF gbl_cTask,2
+
+        } else if (direction == 4) {
+05EC  0844  	MOVF actionRota_00021_arg_direction, W
+05ED  3A04  	XORLW 0x04
+05EE  1D03  	BTFSS STATUS,Z
+
+            if (iActiveBand == 0) {
+05F0  08BF  	MOVF gbl_iActiveBand, F
+05F1  1D03  	BTFSS STATUS,Z
+05F2  2DF8  	GOTO	label89
+05F8        label89
+
+                // decrease volume, which means incrementing attenuation iVolume
+                if (iVolume < 47) // Min is 47
+05F3  302F  	MOVLW 0x2F
+05F4  0240  	SUBWF gbl_iVolume, W
+05F5  1C03  	BTFSS STATUS,C
+
+                    iVolume++;
+05F6  0AC0  	INCF gbl_iVolume, F
+
+            } else {
+05F7  2E10  	GOTO	label93
+0610        label93
+
+                // nothing happens if band is 15 (max cut)
+                // If currently 0 (no boost/cut), go to cut 9
+                if (iBand == 0) {
+05F8  08C6  	MOVF actionRota_00021_2_iBand, F
+05F9  1D03  	BTFSS STATUS,Z
+05FA  2DFE  	GOTO	label90
+05FE        label90
+
+                    // 8 should reset to 0
+                    iBand = 9;
+05FB  3009  	MOVLW 0x09
+05FC  00C6  	MOVWF actionRota_00021_2_iBand
+
+                } else if (iBand <= 7) {
+05FD  2E08  	GOTO	label92
+05FE  0846  	MOVF actionRota_00021_2_iBand, W
+05FF  3C07  	SUBLW 0x07
+0600  1C03  	BTFSS STATUS,C
+0601  2E04  	GOTO	label91
+0604        label91
+
+                    // if band is in boost, decrement boost
+                    iBand--;
+0602  03C6  	DECF actionRota_00021_2_iBand, F
+
+                } else if (iBand < 15) {
+0603  2E08  	GOTO	label92
+0604  300F  	MOVLW 0x0F
+0605  0246  	SUBWF actionRota_00021_2_iBand, W
+0606  1C03  	BTFSS STATUS,C
+
+                    // if band is in cut, cut further
+                    iBand++;
+0607  0AC6  	INCF actionRota_00021_2_iBand, F
+0608        label92
+
+                }
+                iBands[iAdjustBand] = iBand;
+0608  3000  	MOVLW	HIGH(gbl_iBands)
+
+0609  0085  	MOVWF FSR0H
+060A  3030  	MOVLW LOW(gbl_iBands+D'0')
+060B  0084  	MOVWF FSR0L
+060C  0845  	MOVF actionRota_00021_2_iAdjustBand, W
+060D  0784  	ADDWF FSR0L, F
+060E  0846  	MOVF actionRota_00021_2_iBand, W
+060F  0080  	MOVWF INDF0
+
+            }
+            cTask.TASK_ENCODER_ADJUST = 1;
+0610  153E  	BSF gbl_cTask,2
+
+        }
+    }
+}
+05B9  0008  	RETURN
+05EB  0008  	RETURN
+05EF  0008  	RETURN
+0611  0008  	RETURN
+
+
+/***********************************************************************************
+  MAIN PROGRAM
+************************************************************************************/
+void main() {
+
+    initialise();
+062C  253A  	CALL initialise_00000
+
+    
+    while (1) {
+062D        label99
+065A  2E2D  	GOTO	label99
+
+        // Task scheduler
+        // If there are tasks to be performed, find out the
+        // most recent task from the array and execute it
+        while (cTask > 0) {
+062D  083E  	MOVF gbl_cTask, W
+062E  3C00  	SUBLW 0x00
+062F  1803  	BTFSC STATUS,C
+0630  2E42  	GOTO	label102
+0641  2E2D  	GOTO	label99
+0642        label102
+
+            if (cTask.TASK_ENCODER_SELECT) {
+0631  1CBE  	BTFSS gbl_cTask,1
+0632  2E37  	GOTO	label100
+0637        label100
+
+                // Selection encoder moved
+                tda7317Write();
+0633  2198  	CALL tda7317Wri_0001C
+
+                ssd1306WriteAll();
+0634  21DF  	CALL ssd1306Wri_00018
+
+                cTask.TASK_ENCODER_SELECT = 0;
+0635  0020  	MOVLB 0x00
+0636  10BE  	BCF gbl_cTask,1
+
+            }
+            if (cTask.TASK_ENCODER_ADJUST) {
+0637  1D3E  	BTFSS gbl_cTask,2
+0638  2E3D  	GOTO	label101
+063D        label101
+
+                // Adjustment encoder moved
+                tda7317Write();
+0639  2198  	CALL tda7317Wri_0001C
+
+                ssd1306WriteAll();
+063A  21DF  	CALL ssd1306Wri_00018
+
+                cTask.TASK_ENCODER_ADJUST = 0;
+063B  0020  	MOVLB 0x00
+063C  113E  	BCF gbl_cTask,2
+
+            }
+            if (cTask.TASK_TIMER1) {
+063D  1DBE  	BTFSS gbl_cTask,3
+063E  2E2D  	GOTO	label99
+
+                saveData();
+063F  2514  	CALL saveData_00000
+
+                cTask.TASK_TIMER1 = 0;
+0640  11BE  	BCF gbl_cTask,3
+
+            }
+        }
+        actionRotarySelect(encoderCheck((porta & 0x0C) >> 2, 0));
+0642  300C  	MOVLW 0x0C
+0643  050C  	ANDWF gbl_porta, W
+0644  00C5  	MOVWF encoderChe_0001E_arg_in
+0645  0CC5  	RRF encoderChe_0001E_arg_in, F
+0646  0CC5  	RRF encoderChe_0001E_arg_in, F
+0647  303F  	MOVLW 0x3F
+0648  05C5  	ANDWF encoderChe_0001E_arg_in, F
+0649  01C6  	CLRF encoderChe_0001E_arg_encoder
+064A  256F  	CALL encoderChe_0001E
+064B  084A  	MOVF CompTempVarRet658, W
+064C  00C4  	MOVWF actionRota_00020_arg_direction
+064D  2612  	CALL actionRota_00020
+
+        actionRotaryAdjust(encoderCheck((porta & 0x30) >> 4, 1));
+064E  3030  	MOVLW 0x30
+064F  050C  	ANDWF gbl_porta, W
+0650  00C7  	MOVWF CompTempVar673
+0651  0E47  	SWAPF CompTempVar673, W
+0652  390F  	ANDLW 0x0F
+0653  00C5  	MOVWF encoderChe_0001E_arg_in
+0654  3001  	MOVLW 0x01
+0655  00C6  	MOVWF encoderChe_0001E_arg_encoder
+0656  256F  	CALL encoderChe_0001E
+0657  084A  	MOVF CompTempVarRet658, W
+0658  00C4  	MOVWF actionRota_00021_arg_direction
+0659  25B7  	CALL actionRota_00021
+
+    }
+}
+
+
+////////////////////////////////////////
+// Code with no source :-)
+////////////////////////////////////////
+0000  2E5B  	GOTO	_startup
+
+0004  3180  	MOVLP 0x00
+0005  2E77  	GOTO	interrupt
+0007        delay_us_00000
+0007        ; { delay_us ; function begin
+0007        label1
+0007  0000  	NOP
+0008  0BC4  	DECFSZ delay_us_00000_arg_del, F
+0009  2807  	GOTO	label1
+000A  0008  	RETURN
+000B        ; } delay_us function end
+
+000B        delay_ms_00000
+000B        ; { delay_ms ; function begin
+000B  08C5  	MOVF delay_ms_00000_arg_del, F
+000C  1D03  	BTFSS STATUS,Z
+000D  280F  	GOTO	label2
+000E  0008  	RETURN
+000F        label2
+000F  30F9  	MOVLW 0xF9
+0010        label3
+0010  0000  	NOP
+0011  0000  	NOP
+0012  0000  	NOP
+0013  0000  	NOP
+0014  0000  	NOP
+0015  0000  	NOP
+0016  0000  	NOP
+0017  0000  	NOP
+0018  0000  	NOP
+0019  0000  	NOP
+001A  0000  	NOP
+001B  0000  	NOP
+001C  3EFF  	ADDLW 0xFF
+001D  1D03  	BTFSS STATUS,Z
+001E  2810  	GOTO	label3
+001F  0000  	NOP
+0020  0000  	NOP
+0021  0000  	NOP
+0022  0000  	NOP
+0023  0000  	NOP
+0024  0000  	NOP
+0025  0000  	NOP
+0026  0000  	NOP
+0027  0000  	NOP
+0028  0000  	NOP
+0029  0000  	NOP
+002A  0000  	NOP
+002B  0000  	NOP
+002C  0BC5  	DECFSZ delay_ms_00000_arg_del, F
+002D  280F  	GOTO	label2
+002E  0008  	RETURN
+002F        ; } delay_ms function end
+
+002F        __rom_get_00000
+002F        ; { __rom_get ; function begin
+002F  0874  	MOVF __rom_get_00000_arg_objNumb, W
+0030  00F7  	MOVWF __rom_get_00000_1_romAddr+D'1'
+0031  01F6  	CLRF __rom_get_00000_1_romAddr
+0032  1003  	BCF STATUS,C
+0033  0DF7  	RLF __rom_get_00000_1_romAddr+D'1', F
+0034  0DF6  	RLF __rom_get_00000_1_romAddr, F
+0035  0DF7  	RLF __rom_get_00000_1_romAddr+D'1', F
+0036  0DF6  	RLF __rom_get_00000_1_romAddr, F
+0037  07F7  	ADDWF __rom_get_00000_1_romAddr+D'1', F
+0038  1803  	BTFSC STATUS,C
+0039  0AF6  	INCF __rom_get_00000_1_romAddr, F
+003A  07F7  	ADDWF __rom_get_00000_1_romAddr+D'1', F
+003B  1803  	BTFSC STATUS,C
+003C  0AF6  	INCF __rom_get_00000_1_romAddr, F
+003D  3048  	MOVLW	LOW( label4 )
+003E  07F7  	ADDWF __rom_get_00000_1_romAddr+D'1', F
+003F  1803  	BTFSC STATUS,C
+0040  0AF6  	INCF __rom_get_00000_1_romAddr, F
+0041  3000  	MOVLW	HIGH( label4 )
+0042  0776  	ADDWF __rom_get_00000_1_romAddr, W
+0043  008A  	MOVWF PCLATH
+0044  0875  	MOVF __rom_get_00000_arg_idx, W
+0045  00F6  	MOVWF __rom_get_00000_1_romAddr
+0046  0877  	MOVF __rom_get_00000_1_romAddr+D'1', W
+0047  0082  	MOVWF PCL
+0048        label4
+0048  3000  	MOVLW	HIGH( label5 )
+0049  008A  	MOVWF PCLATH
+004A  3000  	MOVLW	HIGH( label6 )
+004B  00F7  	MOVWF __rom_get_00000_1_romAddr+D'1'
+004C  305E  	MOVLW	LOW( label6 )
+004D  2857  	GOTO	label5
+004E  3000  	MOVLW	HIGH( label5 )
+004F  008A  	MOVWF PCLATH
+0050  3000  	MOVLW	HIGH( label7 )
+0051  00F7  	MOVWF __rom_get_00000_1_romAddr+D'1'
+0052  306E  	MOVLW	LOW( label7 )
+0053  2857  	GOTO	label5
+0054  3000  	MOVLW	HIGH( label8 )
+0055  00F7  	MOVWF __rom_get_00000_1_romAddr+D'1'
+0056  30B9  	MOVLW	LOW( label8 )
+0057        label5
+0057  07F6  	ADDWF __rom_get_00000_1_romAddr, F
+0058  1803  	BTFSC STATUS,C
+0059  0AF7  	INCF __rom_get_00000_1_romAddr+D'1', F
+005A  0877  	MOVF __rom_get_00000_1_romAddr+D'1', W
+005B  008A  	MOVWF PCLATH
+005C  0876  	MOVF __rom_get_00000_1_romAddr, W
+005D  0082  	MOVWF PCL
+005E        label6
+005E  3400  	RETLW 0x00
+005F  3401  	RETLW 0x01
+0060  3401  	RETLW 0x01
+0061  3400  	RETLW 0x00
+0062  3401  	RETLW 0x01
+0063  3400  	RETLW 0x00
+0064  3400  	RETLW 0x00
+0065  3401  	RETLW 0x01
+0066  3401  	RETLW 0x01
+0067  3400  	RETLW 0x00
+0068  3400  	RETLW 0x00
+0069  3401  	RETLW 0x01
+006A  3400  	RETLW 0x00
+006B  3401  	RETLW 0x01
+006C  3401  	RETLW 0x01
+006D  3400  	RETLW 0x00
+006E        label7
+006E  343E  	RETLW 0x3E
+006F  3451  	RETLW 0x51
+0070  3449  	RETLW 0x49
+0071  3445  	RETLW 0x45
+0072  343E  	RETLW 0x3E
+0073  3400  	RETLW 0x00
+0074  3442  	RETLW 0x42
+0075  347F  	RETLW 0x7F
+0076  3440  	RETLW 0x40
+0077  3400  	RETLW 0x00
+0078  3472  	RETLW 0x72
+0079  3449  	RETLW 0x49
+007A  3449  	RETLW 0x49
+007B  3449  	RETLW 0x49
+007C  3446  	RETLW 0x46
+007D  3421  	RETLW 0x21
+007E  3441  	RETLW 0x41
+007F  3449  	RETLW 0x49
+0080  344D  	RETLW 0x4D
+0081  3433  	RETLW 0x33
+0082  3418  	RETLW 0x18
+0083  3414  	RETLW 0x14
+0084  3412  	RETLW 0x12
+0085  347F  	RETLW 0x7F
+0086  3410  	RETLW 0x10
+0087  3427  	RETLW 0x27
+0088  3445  	RETLW 0x45
+0089  3445  	RETLW 0x45
+008A  3445  	RETLW 0x45
+008B  3439  	RETLW 0x39
+008C  343C  	RETLW 0x3C
+008D  344A  	RETLW 0x4A
+008E  3449  	RETLW 0x49
+008F  3449  	RETLW 0x49
+0090  3431  	RETLW 0x31
+0091  3441  	RETLW 0x41
+0092  3421  	RETLW 0x21
+0093  3411  	RETLW 0x11
+0094  3409  	RETLW 0x09
+0095  3407  	RETLW 0x07
+0096  3436  	RETLW 0x36
+0097  3449  	RETLW 0x49
+0098  3449  	RETLW 0x49
+0099  3449  	RETLW 0x49
+009A  3436  	RETLW 0x36
+009B  3446  	RETLW 0x46
+009C  3449  	RETLW 0x49
+009D  3449  	RETLW 0x49
+009E  3429  	RETLW 0x29
+009F  341E  	RETLW 0x1E
+00A0  3400  	RETLW 0x00
+00A1  3400  	RETLW 0x00
+00A2  3460  	RETLW 0x60
+00A3  3460  	RETLW 0x60
+00A4  3400  	RETLW 0x00
+00A5  3400  	RETLW 0x00
+00A6  3408  	RETLW 0x08
+00A7  3408  	RETLW 0x08
+00A8  3408  	RETLW 0x08
+00A9  3400  	RETLW 0x00
+00AA  3408  	RETLW 0x08
+00AB  3408  	RETLW 0x08
+00AC  343E  	RETLW 0x3E
+00AD  3408  	RETLW 0x08
+00AE  3408  	RETLW 0x08
+00AF  3438  	RETLW 0x38
+00B0  3444  	RETLW 0x44
+00B1  3444  	RETLW 0x44
+00B2  3428  	RETLW 0x28
+00B3  347F  	RETLW 0x7F
+00B4  347F  	RETLW 0x7F
+00B5  3449  	RETLW 0x49
+00B6  3449  	RETLW 0x49
+00B7  3449  	RETLW 0x49
+00B8  3436  	RETLW 0x36
+00B9        label8
+00B9  340F  	RETLW 0x0F
+00BA  3410  	RETLW 0x10
+00BB  340F  	RETLW 0x0F
+00BC  3400  	RETLW 0x00
+00BD  341F  	RETLW 0x1F
+00BE  3410  	RETLW 0x10
+00BF  3410  	RETLW 0x10
+00C0  3400  	RETLW 0x00
+00C1  3400  	RETLW 0x00
+00C2  3400  	RETLW 0x00
+00C3  3400  	RETLW 0x00
+00C4  3411  	RETLW 0x11
+00C5  3415  	RETLW 0x15
+00C6  341F  	RETLW 0x1F
+00C7  3400  	RETLW 0x00
+00C8  341F  	RETLW 0x1F
+00C9  3411  	RETLW 0x11
+00CA  341F  	RETLW 0x1F
+00CB  3400  	RETLW 0x00
+00CC  3400  	RETLW 0x00
+00CD  3400  	RETLW 0x00
+00CE  3400  	RETLW 0x00
+00CF  3400  	RETLW 0x00
+00D0  341F  	RETLW 0x1F
+00D1  3415  	RETLW 0x15
+00D2  341D  	RETLW 0x1D
+00D3  3400  	RETLW 0x00
+00D4  341F  	RETLW 0x1F
+00D5  3411  	RETLW 0x11
+00D6  341F  	RETLW 0x1F
+00D7  3400  	RETLW 0x00
+00D8  3400  	RETLW 0x00
+00D9  3400  	RETLW 0x00
+00DA  3400  	RETLW 0x00
+00DB  341F  	RETLW 0x1F
+00DC  3400  	RETLW 0x00
+00DD  341D  	RETLW 0x1D
+00DE  3415  	RETLW 0x15
+00DF  3417  	RETLW 0x17
+00E0  3400  	RETLW 0x00
+00E1  341F  	RETLW 0x1F
+00E2  3411  	RETLW 0x11
+00E3  341F  	RETLW 0x1F
+00E4  3400  	RETLW 0x00
+00E5  3400  	RETLW 0x00
+00E6  341D  	RETLW 0x1D
+00E7  3415  	RETLW 0x15
+00E8  3417  	RETLW 0x17
+00E9  3400  	RETLW 0x00
+00EA  3417  	RETLW 0x17
+00EB  3415  	RETLW 0x15
+00EC  341D  	RETLW 0x1D
+00ED  3400  	RETLW 0x00
+00EE  341F  	RETLW 0x1F
+00EF  3411  	RETLW 0x11
+00F0  341F  	RETLW 0x1F
+00F1  3400  	RETLW 0x00
+00F2  3400  	RETLW 0x00
+00F3  3417  	RETLW 0x17
+00F4  3415  	RETLW 0x15
+00F5  341D  	RETLW 0x1D
+00F6  3400  	RETLW 0x00
+00F7  341F  	RETLW 0x1F
+00F8  3411  	RETLW 0x11
+00F9  341F  	RETLW 0x1F
+00FA  3400  	RETLW 0x00
+00FB  341F  	RETLW 0x1F
+00FC  3411  	RETLW 0x11
+00FD  341F  	RETLW 0x1F
+00FE  3400  	RETLW 0x00
+00FF  3400  	RETLW 0x00
+0100  3400  	RETLW 0x00
+0101  341F  	RETLW 0x1F
+0102  3400  	RETLW 0x00
+0103  341F  	RETLW 0x1F
+0104  3408  	RETLW 0x08
+0105  3414  	RETLW 0x14
+0106  3400  	RETLW 0x00
+0107  3400  	RETLW 0x00
+0108  3400  	RETLW 0x00
+0109  3400  	RETLW 0x00
+010A  3400  	RETLW 0x00
+010B  3400  	RETLW 0x00
+010C  341D  	RETLW 0x1D
+010D  3415  	RETLW 0x15
+010E  3417  	RETLW 0x17
+010F  3400  	RETLW 0x00
+0110  341F  	RETLW 0x1F
+0111  3408  	RETLW 0x08
+0112  3414  	RETLW 0x14
+0113  3400  	RETLW 0x00
+0114  3400  	RETLW 0x00
+0115  3400  	RETLW 0x00
+0116  3400  	RETLW 0x00
+0117  3400  	RETLW 0x00
+0118  340F  	RETLW 0x0F
+0119  3408  	RETLW 0x08
+011A  341C  	RETLW 0x1C
+011B  3400  	RETLW 0x00
+011C  341F  	RETLW 0x1F
+011D  3408  	RETLW 0x08
+011E  3414  	RETLW 0x14
+011F  3400  	RETLW 0x00
+0120  3400  	RETLW 0x00
+0121  3400  	RETLW 0x00
+0122  3400  	RETLW 0x00
+0123  3400  	RETLW 0x00
+0124  3400  	RETLW 0x00
+0125  341F  	RETLW 0x1F
+0126  3415  	RETLW 0x15
+0127  341F  	RETLW 0x1F
+0128  3400  	RETLW 0x00
+0129  341F  	RETLW 0x1F
+012A  3408  	RETLW 0x08
+012B  3414  	RETLW 0x14
+012C  3400  	RETLW 0x00
+012D  3400  	RETLW 0x00
+012E  3400  	RETLW 0x00
+012F  3400  	RETLW 0x00
+0130  341F  	RETLW 0x1F
+0131  3400  	RETLW 0x00
+0132  341F  	RETLW 0x1F
+0133  3415  	RETLW 0x15
+0134  341D  	RETLW 0x1D
+0135  3400  	RETLW 0x00
+0136  341F  	RETLW 0x1F
+0137  3408  	RETLW 0x08
+0138  3414  	RETLW 0x14
+0139        ; } __rom_get function end
+
+0139        delay_s_00000
+0139        ; { delay_s ; function begin
+0139        label9
+0139  30FA  	MOVLW 0xFA
+013A  00C5  	MOVWF delay_ms_00000_arg_del
+013B  200B  	CALL delay_ms_00000
+013C  30FA  	MOVLW 0xFA
+013D  00C5  	MOVWF delay_ms_00000_arg_del
+013E  200B  	CALL delay_ms_00000
+013F  30FA  	MOVLW 0xFA
+0140  00C5  	MOVWF delay_ms_00000_arg_del
+0141  200B  	CALL delay_ms_00000
+0142  30FA  	MOVLW 0xFA
+0143  00C5  	MOVWF delay_ms_00000_arg_del
+0144  200B  	CALL delay_ms_00000
+0145  0BC4  	DECFSZ delay_s_00000_arg_del, F
+0146  2939  	GOTO	label9
+0147  0008  	RETURN
+0148        ; } delay_s function end
+
+
+0169        __mul_8u_8_00007
+0169        ; { __mul_8u_8u ; function begin
+0169  01F8  	CLRF __mul_8u_8_00007_1_i
+016A  01FB  	CLRF CompTempVarRet379
+016B  01FC  	CLRF CompTempVarRet379+D'1'
+016C  0876  	MOVF __mul_8u_8_00007_arg_a, W
+016D  00F9  	MOVWF __mul_8u_8_00007_1_t
+016E  01FA  	CLRF __mul_8u_8_00007_1_t+D'1'
+016F        label11
+016F  19F8  	BTFSC __mul_8u_8_00007_1_i,3
+0170  0008  	RETURN
+0171  1C77  	BTFSS __mul_8u_8_00007_arg_b,0
+0172  2979  	GOTO	label12
+0173  0879  	MOVF __mul_8u_8_00007_1_t, W
+0174  07FB  	ADDWF CompTempVarRet379, F
+0175  1803  	BTFSC gbl_status,0
+0176  0AFC  	INCF CompTempVarRet379+D'1', F
+0177  087A  	MOVF __mul_8u_8_00007_1_t+D'1', W
+0178  07FC  	ADDWF CompTempVarRet379+D'1', F
+0179        label12
+0179  0CF7  	RRF __mul_8u_8_00007_arg_b, F
+017A  1003  	BCF gbl_status,0
+017B  0DF9  	RLF __mul_8u_8_00007_1_t, F
+017C  0DFA  	RLF __mul_8u_8_00007_1_t+D'1', F
+017D  0AF8  	INCF __mul_8u_8_00007_1_i, F
+017E  296F  	GOTO	label11
+017F        ; } __mul_8u_8u function end
+
+017F        __mul_16u__0000D
+017F        ; { __mul_16u_16u__16 ; function begin
+017F  01F9  	CLRF __mul_16u__0000D_1_i
+0180  01FC  	CLRF CompTempVarRet382
+0181  01FD  	CLRF CompTempVarRet382+D'1'
+0182  0875  	MOVF __mul_16u__0000D_arg_a, W
+0183  00FA  	MOVWF __mul_16u__0000D_1_t
+0184  0876  	MOVF __mul_16u__0000D_arg_a+D'1', W
+0185  00FB  	MOVWF __mul_16u__0000D_1_t+D'1'
+0186        label13
+0186  1A79  	BTFSC __mul_16u__0000D_1_i,4
+0187  0008  	RETURN
+0188  1C77  	BTFSS __mul_16u__0000D_arg_b,0
+0189  2990  	GOTO	label14
+018A  087A  	MOVF __mul_16u__0000D_1_t, W
+018B  07FC  	ADDWF CompTempVarRet382, F
+018C  087B  	MOVF __mul_16u__0000D_1_t+D'1', W
+018D  1803  	BTFSC gbl_status,0
+018E  0F7B  	INCFSZ __mul_16u__0000D_1_t+D'1', W
+018F  07FD  	ADDWF CompTempVarRet382+D'1', F
+0190        label14
+0190  1003  	BCF gbl_status,0
+0191  0CF8  	RRF __mul_16u__0000D_arg_b+D'1', F
+0192  0CF7  	RRF __mul_16u__0000D_arg_b, F
+0193  1003  	BCF gbl_status,0
+0194  0DFA  	RLF __mul_16u__0000D_1_t, F
+0195  0DFB  	RLF __mul_16u__0000D_1_t+D'1', F
+0196  0AF9  	INCF __mul_16u__0000D_1_i, F
+0197  2986  	GOTO	label13
+0198        ; } __mul_16u_16u__16 function end
+
+
+
+065B        _startup
+
+0675  3180  	MOVLP 0x00
+0676  2E2C  	GOTO	main
+
+8007  F984  	DW 0xF984
+8008  DAFF  	DW 0xDAFF

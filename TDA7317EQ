@@ -1,0 +1,24 @@
+[Settings]
+Active Directory=Z:\home\dan\PIC\PIC12F_TM1638_AquariumControl\
+Target=PIC16F1824
+Active Compiler=BoostC
+Active Config=Release
+Type=0
+Warnings=2
+Model=0
+Config=0
+Last ExtIdx=7
+Last Dir=Z:\home\dan\PIC\TDA7317EQ\Release\
+[Files]
+Count=2
+File0=TDA7317EQ.c
+File1=TDA7317EQ.h
+[Tools]
+BoostDir=C:\Program Files\SourceBoost\
+Programmer=
+PrefixWithBuildThreadNum=0
+[Debugger]
+DebugFromMain=1
+[Browser]
+UseSysHeaders=0
+UseNovoHeaders=0

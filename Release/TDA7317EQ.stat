@@ -1,0 +1,30 @@
+// SourceBoost Linker Function Resource Usage Dump
+
+#GLOBAL:"global",line = 0,ram = 36.0,rom = 0;
+__mul_8u_8u(unsigned char,unsigned char):"C:\Temp\mul.c",line = 96,ram = 7.0,rom = 22;
+__mul_16u_16u__16(unsigned short,unsigned short):"C:\Temp\mul.c",line = 197,ram = 9.0,rom = 25;
+saveData(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 104,ram = 2.0,rom = 38;
+eepromWrite(unsigned char,unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 116,ram = 4.0,rom = 39;
+eepromRead(unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 158,ram = 2.0,rom = 9;
+readData(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 149,ram = 1.0,rom = 32;
+ssd1306StartCommand(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 206,ram = 0.0,rom = 7;
+i2cStart(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 186,ram = 0.0,rom = 3;
+i2cWrite(unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 198,ram = 1.0,rom = 4;
+ssd1306Init(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 213,ram = 0.0,rom = 101;
+i2cStop(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 192,ram = 0.0,rom = 3;
+ssd1306WriteAll(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 279,ram = 49.4,rom = 649;
+tda7317Write(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 578,ram = 0.0,rom = 71;
+initialise(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 24,ram = 0.0,rom = 53;
+interrupt(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 86,ram = 0.0,rom = 16;
+i2cWait(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 181,ram = 0.0,rom = 7;
+encoderCheck(unsigned char,unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 609,ram = 6.0,rom = 72;
+actionRotarySelect(unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 645,ram = 0.0,rom = 26;
+actionRotaryAdjust(unsigned char):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 662,ram = 3.0,rom = 91;
+main(void):"Z:\home\dan\PIC\TDA7317EQ\TDA7317EQ.c",line = 718,ram = 1.0,rom = 47;
+delay_us(unsigned char):"NoSourceFile",line = 0,ram = 0.0,rom = 4;
+delay_ms(unsigned char):"NoSourceFile",line = 0,ram = 0.0,rom = 36;
+delay_s(unsigned char):"NoSourceFile",line = 0,ram = 1.0,rom = 15;
+__rom_get(unsigned char,unsigned char):"NoSourceFile",line = 0,ram = 4.0,rom = 266;
+_startup(void):"NoSourceFile",line = 0,ram = 0.0,rom = 28;
+#HEAP_BLOCK: 0, 128, 112;
+#HEAP_BLOCK: 1, 160, 48;
